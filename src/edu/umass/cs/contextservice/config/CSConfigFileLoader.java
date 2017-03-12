@@ -88,12 +88,23 @@ public class CSConfigFileLoader
 			  	(ContextServiceConfig.regionMappingPolicyString, 
 			  			ContextServiceConfig.regionMappingPolicy);
 	  
+	  ContextServiceConfig.enableBulkLoading = Boolean.parseBoolean(
+	    		properties.getProperty(ContextServiceConfig.bulkLoadingEnableString, 
+	    				ContextServiceConfig.enableBulkLoading+"") );
+	  
+	  ContextServiceConfig.bulkLoadingFilePath = properties.getProperty
+			  	(ContextServiceConfig.bulkLoadingFileString, 
+			  			ContextServiceConfig.bulkLoadingFilePath);
+	  
+	  
 	  System.out.println(" ContextServiceConfig.TRIGGER_ENABLED "+ContextServiceConfig.TRIGGER_ENABLED
     		+" ContextServiceConfig.numAttrsPerSubspace "+ContextServiceConfig.numAttrsPerSubspace 
     		+" ContextServiceConfig.PRIVACY_ENABLED "+ContextServiceConfig.PRIVACY_ENABLED
     		+" ContextServiceConfig.MYSQL_MAX_CONNECTIONS "+ContextServiceConfig.MYSQL_MAX_CONNECTIONS 
     		+" ContextServiceConfig.THREAD_POOL_SIZE "+ContextServiceConfig.THREAD_POOL_SIZE
-    		+" ContextServiceConfig.regionMappingPolicy "+ContextServiceConfig.regionMappingPolicy);
+    		+" ContextServiceConfig.regionMappingPolicy "+ContextServiceConfig.regionMappingPolicy
+    		+" ContextServiceConfig.enableBulkLoading "+ContextServiceConfig.enableBulkLoading
+    		+" ContextServiceConfig.bulkLoadingFilePath "+ContextServiceConfig.bulkLoadingFilePath);
   }
   
   /**

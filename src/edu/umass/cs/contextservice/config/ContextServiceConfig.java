@@ -3,7 +3,6 @@ package edu.umass.cs.contextservice.config;
 /**
  * Context service config file.
  * It contains all configuration parameters.
- * @author adipc
  */
 public class ContextServiceConfig
 {
@@ -16,6 +15,8 @@ public class ContextServiceConfig
 	public static final String queryAllEnabledString				= "queryAllEnabled";
 	public static final String sqlPoolSizeString					= "sqlPoolSize";
 	public static final String threadPoolSizeString					= "threadPoolSize";
+	public static final String bulkLoadingEnableString				= "enableBulkLoading";
+	public static final String bulkLoadingFileString				= "bulkLoadingFile";
 	
 	// region Mapping policies
 	public static final String DEMAND_AWARE							= "DEMAND_AWARE";
@@ -202,4 +203,10 @@ public class ContextServiceConfig
 	public static final boolean LIMITED_SEARCH_REPLY_ENABLE			= true;
 	public static final int LIMITED_SEARCH_REPLY_SIZE				= 100;
 	
+	public static final String HASH_INDEX_FILE_PREFIX				= "hashIndexGuidsNodeId";
+	public static final String ATTR_INDEX_FILE_PREFIX				= "attrIndexGuidsNodeId";
+	
+	
+	public static boolean enableBulkLoading							= false;
+	public static String bulkLoadingFilePath						= "";
 }

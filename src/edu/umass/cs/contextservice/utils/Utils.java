@@ -438,6 +438,21 @@ public class Utils
 		return jfi;
 	}
 	
+	/**
+	 * Consistently hashes a guid to a node. 
+	 * The method is thread safe.
+	 * @param stringToHash
+	 * @param listOfNodesToConsistentlyHash
+	 * @return
+	 */
+	public static Integer getConsistentHashingNodeID( String stringToHash , 
+			List<Integer> listOfNodesToConsistentlyHash )
+	{
+		int numNodes = listOfNodesToConsistentlyHash.size();
+		int mapIndex = Hashing.consistentHash(stringToHash.hashCode(), numNodes);
+		return listOfNodesToConsistentlyHash.get(mapIndex);
+	}
+	
 	
 	//FIXME: test time taken by each method here
 	public static void main( String[] args ) throws JSONException, NoSuchAlgorithmException, InvalidKeyException, 

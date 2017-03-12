@@ -54,7 +54,6 @@ public abstract class AbstractScheme implements PacketDemultiplexer<JSONObject>
 	
 	protected final Object pendingUpdateLock								= new Object();
 	
-	
 	// lock for synchronizing number of msg update
 	protected long numMessagesInSystem										= 0;
 	
@@ -211,9 +210,6 @@ public abstract class AbstractScheme implements PacketDemultiplexer<JSONObject>
 	}
 	
 	// public abstract methods
-	public abstract Integer getConsistentHashingNodeID( String stringToHash, 
-												List<Integer> listOfNodesToConsistentlyHash);
-	
 	
 	public abstract GenericMessagingTask<Integer,?>[] handleQueryMsgFromUser(
 			ProtocolEvent<ContextServicePacket.PacketType, String> event,

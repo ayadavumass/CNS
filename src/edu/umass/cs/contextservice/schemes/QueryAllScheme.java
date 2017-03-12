@@ -5,7 +5,6 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Logger;
@@ -13,8 +12,6 @@ import java.util.logging.Logger;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
-import com.google.common.hash.Hashing;
 
 import edu.umass.cs.contextservice.attributeInfo.AttributeTypes;
 import edu.umass.cs.contextservice.config.ContextServiceConfig;
@@ -38,22 +35,21 @@ import edu.umass.cs.contextservice.queryparsing.QueryInfo;
 import edu.umass.cs.contextservice.schemes.helperclasses.SearchReplyInfo;
 import edu.umass.cs.contextservice.updates.GUIDUpdateInfo;
 import edu.umass.cs.contextservice.updates.UpdateInfo;
+import edu.umass.cs.contextservice.utils.Utils;
 import edu.umass.cs.nio.GenericMessagingTask;
 import edu.umass.cs.nio.JSONMessenger;
 import edu.umass.cs.nio.interfaces.NodeConfig;
 import edu.umass.cs.protocoltask.ProtocolEvent;
 import edu.umass.cs.protocoltask.ProtocolTask;
 
+
 public class QueryAllScheme extends AbstractScheme
 {
-	private  QueryAllDB queryAllDB 								= null;
+	private  QueryAllDB queryAllDB 													= null;
 	
-	//TODO: make the trigger handling part in separate interfaces and classes.
-	// also the privacy stuff. 
-	// this files is getting very big.
 	private final ExecutorService nodeES;
 	
-	private HashMap<String, GUIDUpdateInfo> guidUpdateInfoMap			= null;
+	private HashMap<String, GUIDUpdateInfo> guidUpdateInfoMap						= null;
 	
 	private final Object pendingQueryLock											= new Object();
 	private long queryIdCounter														= 0;
@@ -75,8 +71,6 @@ public class QueryAllScheme extends AbstractScheme
 		ContextServiceLogger.getLogger().fine("HyperspaceMySQLDB completed");
 	}
 	
-	//TODO not sure what is the overhead of synchronizig exectutor service
-	// but as we are accessing same executor service from many threads, so may be good to synchronize
 	@Override
 	public GenericMessagingTask<Integer, ?>[] handleQueryMsgFromUser(
 			ProtocolEvent<PacketType, String> event,
@@ -202,15 +196,6 @@ public class QueryAllScheme extends AbstractScheme
 		return null;
 	}
 	
-	@Override
-	public Integer getConsistentHashingNodeID( String stringToHash , 
-			List<Integer> listOfNodesToConsistentlyHash )
-	{
-		int numNodes = listOfNodesToConsistentlyHash.size();
-		int mapIndex = Hashing.consistentHash(stringToHash.hashCode(), numNodes);
-		return listOfNodesToConsistentlyHash.get(mapIndex);
-	}
-	
 	private void processQueryMsgFromUser
 				(QueryMsgFromUser queryMsgFromUser)
 	{
@@ -232,7 +217,6 @@ public class QueryAllScheme extends AbstractScheme
 		
 		guidProcessingOfQueryMsgFromUser(queryMsgFromUser);
 	}
-	
 	
 	private QueryInfo guidProcessingOfQueryMsgFromUser
 								(QueryMsgFromUser queryMsgFromUser)
@@ -299,7 +283,7 @@ public class QueryAllScheme extends AbstractScheme
 	private void processValueUpdateFromGNS( ValueUpdateFromGNS valueUpdateFromGNS )
 	{
 		String GUID 			  		= valueUpdateFromGNS.getGUID();
-		Integer respNodeId 	  			= this.getConsistentHashingNodeID
+		Integer respNodeId 	  			= Utils.getConsistentHashingNodeID
 													(GUID, this.allNodeIDs);
 		
 		// just forward the request to the node that has 
@@ -473,7 +457,8 @@ public class QueryAllScheme extends AbstractScheme
 	private void processGetMessage(GetMessage getMessage)
 	{
 		String GUID 			  = getMessage.getGUIDsToGet();
-		Integer respNodeId 	  = this.getConsistentHashingNodeID(GUID, this.allNodeIDs);
+		Integer respNodeId 	  	  = Utils.getConsistentHashingNodeID
+													(GUID, this.allNodeIDs);
 		
 		// just forward the request to the node that has 
 		// guid stored in primary subspace.

@@ -5,7 +5,6 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Logger;
@@ -17,9 +16,8 @@ import org.paukov.combinatorics.Factory;
 import org.paukov.combinatorics.Generator;
 import org.paukov.combinatorics.ICombinatoricsVector;
 
-import com.google.common.hash.Hashing;
-
 import edu.umass.cs.contextservice.attributeInfo.AttributeTypes;
+import edu.umass.cs.contextservice.bulkloading.BulkLoadDataInMySQLFromAFile;
 import edu.umass.cs.contextservice.common.CSNodeConfig;
 import edu.umass.cs.contextservice.config.ContextServiceConfig;
 import edu.umass.cs.contextservice.database.AbstractDataStorageDB;
@@ -55,6 +53,7 @@ import edu.umass.cs.contextservice.schemes.components.TriggerProcessing;
 import edu.umass.cs.contextservice.schemes.components.TriggerProcessingInterface;
 import edu.umass.cs.contextservice.updates.GUIDUpdateInfo;
 import edu.umass.cs.contextservice.updates.UpdateInfo;
+import edu.umass.cs.contextservice.utils.Utils;
 import edu.umass.cs.nio.GenericMessagingTask;
 import edu.umass.cs.nio.JSONMessenger;
 import edu.umass.cs.protocoltask.ProtocolEvent;
@@ -70,7 +69,6 @@ public class RegionMappingBasedScheme extends AbstractScheme
 	private final AbstractRegionMappingPolicy regionMappingPolicy;
 	
 	private final AbstractGUIDAttrValueProcessing guidAttrValProcessing;
-	
 	
 	private TriggerProcessingInterface triggerProcessing;
 	
@@ -92,7 +90,7 @@ public class RegionMappingBasedScheme extends AbstractScheme
 			profStats = new ProfilerStatClass();
 			new Thread(profStats).start();
 		}
-
+		
 		if(ContextServiceConfig.sqlDBType == ContextServiceConfig.SQL_DB_TYPE.MYSQL)
 		{
 			dataSource = new MySQLDataSource(this.getMyID());
@@ -138,54 +136,10 @@ public class RegionMappingBasedScheme extends AbstractScheme
 				assert(false);
 		}
 		
-		
 		regionMappingPolicy.computeRegionMapping();
-		
-		/*if(!ContextServiceConfig.disableOptimizer)
-		{
-			optimalHCalculator = new CalculateOptimalNumAttrsInSubspace(
-					nc.getNodeIDs().size(),
-						AttributeTypes.attributeMap.size());
-			
-			if( optimalHCalculator.getBasicOrReplicated() )
-			{
-				subspaceConfigurator 
-					= new BasicSubspaceConfigurator(messenger.getNodeConfig(), 
-							optimalHCalculator.getOptimalH() );
-			}
-			else
-			{
-				subspaceConfigurator 
-					= new ReplicatedSubspaceConfigurator(messenger.getNodeConfig(), 
-							optimalHCalculator.getOptimalH() );
-			}
-		}
-		else
-		{
-			if(ContextServiceConfig.basicConfig)
-			{
-				subspaceConfigurator 
-					= new BasicSubspaceConfigurator(messenger.getNodeConfig(), 
-						(int)ContextServiceConfig.optimalH );
-			}
-			else
-			{
-				subspaceConfigurator 
-					= new ReplicatedSubspaceConfigurator(messenger.getNodeConfig(), 
-						(int)ContextServiceConfig.optimalH );
-			}
-		}*/	
-//		ContextServiceLogger.getLogger().fine("configure subspace started");
-//		// configure subspaces
-//		subspaceConfigurator.configureSubspaceInfo();
-//		ContextServiceLogger.getLogger().fine("configure subspace completed");
 		
 		hyperspaceDB = new RegionMappingDataStorageDB(this.getMyID(), dataSource);
 		
-//		ContextServiceLogger.getLogger().fine("HyperspaceMySQLDB completed");
-//		
-//		subspaceConfigurator.generateAndStoreSubspacePartitionsInDB
-//					(nodeES, hyperspaceDB);
 		
 		guidAttrValProcessing 
 					= new GUIDAttrValueProcessing(
@@ -202,7 +156,16 @@ public class RegionMappingBasedScheme extends AbstractScheme
 			triggerProcessing = new TriggerProcessing(this.getMyID(), 
 				regionMappingPolicy, hyperspaceDB, messenger);
 		}
-		//new Thread(new ProfilerStatClass()).start();
+		
+		if(ContextServiceConfig.enableBulkLoading)
+		{
+			BulkLoadDataInMySQLFromAFile bulkLoad 
+					= new BulkLoadDataInMySQLFromAFile(this.getMyID(), 
+							ContextServiceConfig.bulkLoadingFilePath, dataSource,
+							regionMappingPolicy, this.allNodeIDs);
+			
+			bulkLoad.bulkLoadData();
+		}
 	}
 	
 	
@@ -336,16 +299,6 @@ public class RegionMappingBasedScheme extends AbstractScheme
 		return null;
 	}
 	
-	@Override
-	public Integer getConsistentHashingNodeID( String stringToHash , 
-			List<Integer> listOfNodesToConsistentlyHash )
-	{
-		int numNodes = listOfNodesToConsistentlyHash.size();
-		int mapIndex = Hashing.consistentHash(stringToHash.hashCode(), numNodes);
-		return listOfNodesToConsistentlyHash.get(mapIndex);
-	}
-	
-	
 	private void processQueryMsgFromUser
 		( QueryMsgFromUser queryMsgFromUser )
 	{
@@ -385,7 +338,7 @@ public class RegionMappingBasedScheme extends AbstractScheme
 				&& ContextServiceConfig.UniqueGroupGUIDEnabled )
 		{
 			
-			Integer respNodeId = this.getConsistentHashingNodeID(hashKey, this.allNodeIDs);
+			Integer respNodeId = Utils.getConsistentHashingNodeID(hashKey, this.allNodeIDs);
 			
 			// just forward the request to the node that has 
 			// guid stored in primary subspace.
@@ -452,9 +405,8 @@ public class RegionMappingBasedScheme extends AbstractScheme
 	private void processValueUpdateFromGNS( ValueUpdateFromGNS valueUpdateFromGNS )
 	{
 		String GUID 			  		= valueUpdateFromGNS.getGUID();
-		int respNodeId 	  			    = this.getConsistentHashingNodeID
+		int respNodeId 	  			    = Utils.getConsistentHashingNodeID
 													(GUID, this.allNodeIDs);
-		
 		
 		// just forward the request to the node that has 
 		// guid stored in primary subspace.
@@ -612,7 +564,7 @@ public class RegionMappingBasedScheme extends AbstractScheme
 	private void processGetMessage(GetMessage getMessage)
 	{
 		String GUID 			  = getMessage.getGUIDsToGet();
-		Integer respNodeId 	  = this.getConsistentHashingNodeID(GUID, this.allNodeIDs);
+		Integer respNodeId 	  	  = Utils.getConsistentHashingNodeID(GUID, this.allNodeIDs);
 		
 		// just forward the request to the node that has 
 		// guid stored in primary subspace.
@@ -651,7 +603,6 @@ public class RegionMappingBasedScheme extends AbstractScheme
 			}
 		}
 	}
-	
 	
 	private void processValueUpdateToSubspaceRegionMessageReply
 		( ValueUpdateToSubspaceRegionReplyMessage 
@@ -1105,7 +1056,8 @@ public class RegionMappingBasedScheme extends AbstractScheme
 		for( int j = 0; j<2; j++ )
 		{
 			partitionNumArray[j] = j;
-			ContextServiceLogger.getLogger().fine("partitionNumArray[j] "+j+" "+partitionNumArray[j]);
+			ContextServiceLogger.getLogger().fine
+			("partitionNumArray[j] "+j+" "+partitionNumArray[j]);
 		}
 		
 		// Create the initial vector of 2 elements (apple, orange)
@@ -1115,7 +1067,8 @@ public class RegionMappingBasedScheme extends AbstractScheme
 
 		// Create the generator by calling the appropriate method in the Factory class. 
 		// Set the second parameter as 3, since we will generate 3-elemets permutations
-		Generator<Integer> gen = Factory.createPermutationWithRepetitionGenerator(originalVector, (int)numAttr);
+		Generator<Integer> gen = Factory.createPermutationWithRepetitionGenerator
+							(originalVector, (int)numAttr);
 		
 		// Print the result
 		for( ICombinatoricsVector<Integer> perm : gen )
@@ -1126,112 +1079,3 @@ public class RegionMappingBasedScheme extends AbstractScheme
 		}
 	}
 }
-
-
-/*private void updateGUIDInSecondarySubspaces( JSONObject oldValueJSON , 
-boolean firstTimeInsert , JSONObject updatedAttrValJSON , 
-String GUID , long requestID, long updateStartTime, 
-JSONObject primarySubspaceJSON )
-		throws JSONException
-{
-// process update at other subspaces.
-HashMap<Integer, Vector<SubspaceInfo<Integer>>> subspaceInfoMap
-						= this.subspaceConfigurator.getSubspaceInfoMap();
-
-Iterator<Integer> keyIter   = subspaceInfoMap.keySet().iterator();
-
-while( keyIter.hasNext() )
-{
-int subspaceId 			= keyIter.next();
-Vector<SubspaceInfo<Integer>> replicasVect 
-						= subspaceInfoMap.get(subspaceId);
-
-for( int i=0; i<replicasVect.size(); i++ )
-{
-	SubspaceInfo<Integer> currSubInfo 
-				= replicasVect.get(i);
-	int replicaNum = currSubInfo.getReplicaNum();
-	
-	HashMap<String, AttributePartitionInfo> attrsSubspaceInfo 
-										= currSubInfo.getAttributesOfSubspace();
-	
-	//Vector<Integer> subspaceNodes = currSubInfo.getNodesOfSubspace();
-	
-	this.guidAttrValProcessing.guidValueProcessingOnUpdate
-		( attrsSubspaceInfo, oldValueJSON, subspaceId, replicaNum, 
-				updatedAttrValJSON, GUID, requestID, firstTimeInsert, 
-				updateStartTime, 
-				primarySubspaceJSON );
-	
-}
-}
-}*/
-
-
-/**
- * returns the replica num for a subspace
- * One nodeid should have just one replica num
- * as it can belong to just one replica of that subspace
- * @return
- */
-//private int getTheReplicaNumForASubspace( int subpsaceId )
-//{
-//	Vector<SubspaceInfo> replicasVect 
-//			= subspaceConfigurator.getSubspaceInfoMap().get(subpsaceId);
-//	
-//	int replicaNum = -1;
-//	for( int i=0;i<replicasVect.size();i++ )
-//	{
-//		SubspaceInfo subInfo = replicasVect.get(i);
-//		if( subInfo.checkIfSubspaceHasMyID(this.getMyID()) )
-//		{
-//			replicaNum = subInfo.getReplicaNum();
-//			break;
-//		}
-//	}
-//	
-//	if(replicaNum == -1)
-//	{
-//		assert(false);
-//	}
-//	return replicaNum;
-//}
-
-
-/*private class TaskDispatcher implements Runnable
-{	
-	@Override
-	public void run() 
-	{
-		while( true )
-		{
-			synchronized( codeRequestsQueue )
-			{
-				// not checking the size of the queue here, as size is not
-				// constant time operation here.
-				if( codeRequestsQueue.peek() == null )
-				{
-					try
-					{
-						codeRequestsQueue.wait();
-					}
-					catch ( InterruptedException e )
-					{
-						e.printStackTrace();
-					}
-				}
-			}
-			
-			// not checking the size of the queue here, as size is not
-			// constant time operation here.
-			while( codeRequestsQueue.peek() != null )
-			{
-				MySQLRequestStorage currReq = codeRequestsQueue.poll();
-				if(currReq != null)
-				{
-					
-				}
-			}
-		}
-	}
-}*/
