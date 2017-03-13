@@ -136,7 +136,7 @@ public class BulkLoadDataInMySQLFromAFile
 						
 						for(int i=1; i<parsed.length; i++)
 						{
-							String attrName = attributeOrderList.get(i);
+							String attrName = attributeOrderList.get(i-1);
 							String attrVal = parsed[i];
 							attrValRangeMap.put(attrName, new AttributeValueRange(attrVal, attrVal));
 						}
