@@ -198,6 +198,7 @@ public class BulkLoadDataInMySQLFromAFile
 		return attributeOrderList;
 	}
 	
+	
 	/**
 	 * bulk loads data from files into mysql.
 	 */
@@ -229,13 +230,13 @@ public class BulkLoadDataInMySQLFromAFile
 		Thread th2 = new Thread(hashIndexCmd);
 		
 		long start = System.currentTimeMillis();
-		th1.start();
-		th2.start();
-		
 		
 		try 
 		{
+			th1.start();
 			th1.join();
+			
+			th2.start();
 			th2.join();
 		} catch (InterruptedException e) 
 		{
@@ -280,7 +281,6 @@ public class BulkLoadDataInMySQLFromAFile
 		return false;
 	}
 	
-	
 	private class MySqlOperationThread implements Runnable
 	{
 		private final String command;
@@ -291,7 +291,7 @@ public class BulkLoadDataInMySQLFromAFile
 		}
 		
 		@Override
-		public void run() 
+		public void run()
 		{
 			Connection myConn  = null;
 			Statement  stmt    = null;
