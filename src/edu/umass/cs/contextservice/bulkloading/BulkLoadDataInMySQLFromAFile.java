@@ -198,7 +198,6 @@ public class BulkLoadDataInMySQLFromAFile
 		return attributeOrderList;
 	}
 	
-	
 	/**
 	 * bulk loads data from files into mysql.
 	 */
@@ -211,51 +210,43 @@ public class BulkLoadDataInMySQLFromAFile
 		String hashIndexFilePath = currentDir+"/"
 					+ContextServiceConfig.HASH_INDEX_FILE_PREFIX+myId;
 		
-		//LOAD DATA INFILE '/proj/MobilityFirst/ayadavDir/contextServiceScripts/guidsInfoFile.txt' INTO TABLE testTable FIELDS TERMINATED BY ',' LINES TERMINATED BY '\n' (@hexGUID, attr0, attr1) SET nodeGUID=UNHEX(@hexGUID);
 		
-		Connection myConn  = null;
-		Statement  stmt    = null;
-		try
+		String cmd = getMySqlLoadCommand(attrIndexFilePath, 
+				RegionMappingDataStorageDB.ATTR_INDEX_TABLE_NAME, 
+				attributeOrderList);
+		
+		
+		MySqlOperationThread attrIndexCmd = new MySqlOperationThread(cmd);
+		
+		
+		cmd = getMySqlLoadCommand(hashIndexFilePath, 
+				RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME, 
+				attributeOrderList);
+		
+		MySqlOperationThread hashIndexCmd = new MySqlOperationThread(cmd);
+		
+		Thread th1 = new Thread(attrIndexCmd);
+		Thread th2 = new Thread(hashIndexCmd);
+		
+		long start = System.currentTimeMillis();
+		th1.start();
+		th2.start();
+		
+		
+		try 
 		{
-			myConn = dataSource.getConnection(DB_REQUEST_TYPE.UPDATE);
-			stmt   = myConn.createStatement();
-			
-			String cmd = getMySqlLoadCommand(attrIndexFilePath, 
-					RegionMappingDataStorageDB.ATTR_INDEX_TABLE_NAME, 
-					attributeOrderList);
-			
-			System.out.println("AttrIndex loading started");
-			long start = System.currentTimeMillis();
-			stmt.execute(cmd);
-			long end = System.currentTimeMillis();
-			System.out.println("AttrIndex loading ended "+(end-start));
-			
-			cmd = getMySqlLoadCommand(hashIndexFilePath, 
-					RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME, 
-					attributeOrderList);
-			
-			stmt.execute(cmd);
-			System.out.println("HashIndex loading ended "+(System.currentTimeMillis()-end));
+			th1.join();
+			th2.join();
+		} catch (InterruptedException e) 
+		{
+			e.printStackTrace();
 		}
-		catch( SQLException mysqlEx )
-		{
-			mysqlEx.printStackTrace();
-		}
-		finally
-		{
-			try
-			{
-				if( stmt != null )
-					stmt.close();
-				
-				if( myConn != null )
-					myConn.close();
-			}
-			catch( SQLException sqex )
-			{
-				sqex.printStackTrace();
-			}
-		}	
+		
+		
+		System.out.println("Data loading for both attr and hash index finished "
+							+(System.currentTimeMillis()-start));	
+		
+		//LOAD DATA INFILE '/proj/MobilityFirst/ayadavDir/contextServiceScripts/guidsInfoFile.txt' INTO TABLE testTable FIELDS TERMINATED BY ',' LINES TERMINATED BY '\n' (@hexGUID, attr0, attr1) SET nodeGUID=UNHEX(@hexGUID);
 	}
 	
 	
@@ -276,6 +267,7 @@ public class BulkLoadDataInMySQLFromAFile
 		return cmd;
 	}
 	
+	
 	private boolean ifListContainsMyId(List<Integer> nodeList)
 	{
 		for(int i=0; i<nodeList.size(); i++)
@@ -287,6 +279,54 @@ public class BulkLoadDataInMySQLFromAFile
 		}
 		return false;
 	}
+	
+	
+	private class MySqlOperationThread implements Runnable
+	{
+		private final String command;
+		
+		public MySqlOperationThread(String cmd)
+		{
+			this.command = cmd;
+		}
+		
+		@Override
+		public void run() 
+		{
+			Connection myConn  = null;
+			Statement  stmt    = null;
+			try
+			{
+				myConn = dataSource.getConnection(DB_REQUEST_TYPE.UPDATE);
+				stmt   = myConn.createStatement();
+				
+				long start = System.currentTimeMillis();
+				stmt.execute(command);
+				long end = System.currentTimeMillis();
+				System.out.println("Data loading ended "+(end-start));
+			}
+			catch( SQLException mysqlEx )
+			{
+				mysqlEx.printStackTrace();
+			}
+			finally
+			{
+				try
+				{
+					if( stmt != null )
+						stmt.close();
+					
+					if( myConn != null )
+						myConn.close();
+				}
+				catch( SQLException sqex )
+				{
+					sqex.printStackTrace();
+				}
+			}
+		}
+	}
+	
 	
 	public static void main(String[] args)
 	{
