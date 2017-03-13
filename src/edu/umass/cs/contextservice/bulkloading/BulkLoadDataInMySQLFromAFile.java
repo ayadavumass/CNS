@@ -107,7 +107,7 @@ public class BulkLoadDataInMySQLFromAFile
 					// ignoring fisr column, that should be guid
 					for(int i=1; i<parsed.length; i++)
 					{
-						String attrName = parsed[i];
+						String attrName = parsed[i].trim();
 						if(!AttributeTypes.attributeMap.containsKey(attrName))
 						{
 							throw new IOException("Attribute "+attrName+" not recongnized by CNS");
@@ -176,7 +176,7 @@ public class BulkLoadDataInMySQLFromAFile
 			
 			if(attrIndexFile != null)
 			{
-				try 
+				try
 				{
 					attrIndexFile.close();
 				} catch (IOException e) 
