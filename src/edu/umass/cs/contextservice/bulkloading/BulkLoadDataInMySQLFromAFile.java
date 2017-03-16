@@ -243,7 +243,6 @@ public class BulkLoadDataInMySQLFromAFile
 			e.printStackTrace();
 		}
 		
-		
 		System.out.println("Data loading for both attr and hash index finished "
 							+(System.currentTimeMillis()-start));	
 		

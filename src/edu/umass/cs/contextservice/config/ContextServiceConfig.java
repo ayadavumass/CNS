@@ -110,8 +110,8 @@ public class ContextServiceConfig
 	// mysql result cursor fetches 1 guid at once and stores in memory
 	// need this becuase otherwise in large guids case , all the result 
 	// is stored in memory by default.
-	//TODO 1 below is wrong it should be Integer.MIN_VALUE , http://stackoverflow.com/questions/3443937/java-heap-memory-error
-	public static final int MYSQL_CURSOR_FETCH_SIZE					= 1;
+	//FIXED 1 below is wrong it should be Integer.MIN_VALUE , http://stackoverflow.com/questions/3443937/java-heap-memory-error
+	public static final int MYSQL_CURSOR_FETCH_SIZE					= Integer.MIN_VALUE;
 	
 	
 	// this gives minimum of 2^10 subspace partitions if there are 10 

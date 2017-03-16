@@ -175,7 +175,6 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 		}
 	}
 	
-	
 //	private void createIndexesInSQLite(String tableName, 
 //			HashMap<String, AttributePartitionInfo> subspaceAttributes, Statement  stmt)
 //	{
@@ -221,8 +220,7 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 				stmt   = myConn.createStatement();
 			}
 			
-			ContextServiceLogger.getLogger().fine("processSearchQueryInSubspaceRegion: "
-								+mysqlQuery);
+			long start = System.currentTimeMillis();
 			
 			ResultSet rs = stmt.executeQuery(mysqlQuery);
 			while( rs.next() )
@@ -286,6 +284,9 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 					}
 				}
 			}
+			
+			System.out.println("MySQL query exec time "
+					+(System.currentTimeMillis()-start)+" query "+mysqlQuery );
 			
 			rs.close();
 			stmt.close();
