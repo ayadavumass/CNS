@@ -44,6 +44,7 @@ import edu.umass.cs.contextservice.profilers.ProfilerStatClass;
 import edu.umass.cs.contextservice.queryparsing.QueryInfo;
 import edu.umass.cs.contextservice.regionmapper.AbstractRegionMappingPolicy;
 import edu.umass.cs.contextservice.regionmapper.FileBasedRegionMappingPolicy;
+import edu.umass.cs.contextservice.regionmapper.FileBasedRegionMappingPolicyWithDB;
 import edu.umass.cs.contextservice.regionmapper.HyperdexBasedRegionMappingPolicy;
 import edu.umass.cs.contextservice.regionmapper.SqrtNConsistentHashingPolicy;
 import edu.umass.cs.contextservice.regionmapper.UniformGreedyRegionMappingPolicyWithDB;
@@ -115,8 +116,8 @@ public class RegionMappingBasedScheme extends AbstractScheme
 			}
 			case ContextServiceConfig.DEMAND_AWARE:
 			{
-				regionMappingPolicy = new FileBasedRegionMappingPolicy(
-						AttributeTypes.attributeMap, nc);
+				regionMappingPolicy = new FileBasedRegionMappingPolicyWithDB(
+						dataSource, AttributeTypes.attributeMap, nc);
 				break;
 			}
 			case ContextServiceConfig.HYPERDEX:
