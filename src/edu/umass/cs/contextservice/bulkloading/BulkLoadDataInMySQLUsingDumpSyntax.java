@@ -332,14 +332,22 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 		String bulkLoadFilePath = currentDir+"/"
 					+ContextServiceConfig.BULK_LOAD_FILE+myId;
 		
+		BufferedWriter bw = null;
 		String loadCmd = connStr +" -e \"source "+bulkLoadFilePath+"\"";
 		
 		System.out.println("loadCmd "+loadCmd);
 		
 		try 
 		{
+			String scriptname = "bulkloadingScript"+myId+".sh";
+			bw = new BufferedWriter(new FileWriter(scriptname));
+			bw.write(loadCmd+"\n");
+			bw.close();
+			
+			Runtime.getRuntime().exec("chmod +x "+scriptname).waitFor();
+			
 			long start = System.currentTimeMillis();
-			Process proc = Runtime.getRuntime().exec(loadCmd); 
+			Process proc = Runtime.getRuntime().exec("bash "+scriptname);
 			BufferedReader read = new BufferedReader(
 					new InputStreamReader(proc.getInputStream()));
 			try 
@@ -348,7 +356,7 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
             } 
 			catch (InterruptedException e) 
 			{
-				System.out.println(e.getMessage());
+				e.printStackTrace();
             }
 			
 			while (read.ready()) 
@@ -360,7 +368,20 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 		catch (IOException e) 
 		{
 			e.printStackTrace();
-        }
+        } catch (InterruptedException e1) 
+		{
+			e1.printStackTrace();
+		}
+		finally
+		{
+			if(bw != null)
+				try {
+					bw.close();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+		}
 	}
 	
 	
