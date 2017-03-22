@@ -34,4 +34,9 @@ public interface GUIDStorageInterface
     					throws JSONException;
 	
 	public void deleteGUIDFromTable(String tableName, String nodeGUID);
+	
+	
+	public String getAttrIndexTableCreationCmd();
+	
+	public String getHashIndexTableCreationCmd();
 }

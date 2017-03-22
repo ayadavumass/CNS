@@ -106,11 +106,13 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 			str = "DROP TABLE IF EXISTS `"+RegionMappingDataStorageDB.ATTR_INDEX_TABLE_NAME+"`;";
 			bw.write(str+"\n");
 			
-			str = "DROP TABLE IF EXISTS `"+RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME+"`;";
-			bw.write(str+"\n");
+			//str = "DROP TABLE IF EXISTS `"+RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME+"`;";
+			//bw.write(str+"\n");
 			
 			// creates data storage tables.
-			guidDBStorage.createDataStorageTables();
+			//guidDBStorage.createDataStorageTables();
+			String attrIndexTableCmd = guidDBStorage.getAttrIndexTableCreationCmd();
+			bw.write(attrIndexTableCmd+"\n");
 			
 			
 			//LOCK TABLES `attrIndexDataStorage` WRITE;

@@ -55,105 +55,13 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 			myConn = dataSource.getConnection(DB_REQUEST_TYPE.UPDATE);
 			stmt   = myConn.createStatement();
 			
-			//TODO: which indexing scheme is better, indexing two attribute once or 
-			// creating a index over all attributes datastorage table of each subspace
-			String tableName = RegionMappingDataStorageDB.ATTR_INDEX_TABLE_NAME;
+			String attrIndexTableCmd = getAttrIndexTableCreationCmd();
 			
-			String newTableCommand = "create table "+tableName+" ( "
-				      + " nodeGUID Binary(20) PRIMARY KEY";
+			stmt.executeUpdate(attrIndexTableCmd);
 			
-			newTableCommand = getDataStorageString(newTableCommand);
+			String hashIndexTableCmd = getHashIndexTableCreationCmd();
 			
-			if(ContextServiceConfig.PRIVACY_ENABLED)
-			{
-				newTableCommand = getPrivacyStorageString(newTableCommand);
-				// row format dynamic because we want TEXT columns to be stored completely off the row, 
-				// only pointer should be stored in the row, otherwise default is storing 700 bytes for 
-				// each TEXT in row.
-				
-				// sqlite doesn't support dynamic rows as it is an in-memory db.
-				if( ContextServiceConfig.sqlDBType == SQL_DB_TYPE.SQLITE )
-				{
-					newTableCommand = newTableCommand +" )";
-				}
-				else
-				{
-					if(!ContextServiceConfig.IN_MEMORY_MYSQL)
-					{
-						newTableCommand = newTableCommand +" ) ROW_FORMAT=DYNAMIC";
-					}
-					else
-					{
-						newTableCommand = newTableCommand +" )";
-					}
-				}
-			}
-			else
-			{
-				newTableCommand = newTableCommand +" ) ";
-			}
-			
-			if( (ContextServiceConfig.sqlDBType == SQL_DB_TYPE.MYSQL) 
-									&& (ContextServiceConfig.IN_MEMORY_MYSQL) )
-			{
-				newTableCommand = newTableCommand +" ENGINE = MEMORY";
-				
-			}
-			System.out.println("newTableCommand "+newTableCommand);
-			stmt.executeUpdate(newTableCommand);
-			
-			
-			tableName = RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME;
-			newTableCommand = "create table "+tableName+" ( "
-				      + " nodeGUID Binary(20) PRIMARY KEY";
-			
-			newTableCommand = getDataStorageString(newTableCommand);
-			
-			JSONObject emptyJSON = new JSONObject();
-			
-			//TODO default empty json is added for bulkloading and not appropriately tested for privacy case
-			newTableCommand = newTableCommand + " , "
-						+RegionMappingDataStorageDB.unsetAttrsColName+" VARCHAR("
-					+RegionMappingDataStorageDB.varcharSizeForunsetAttrsCol+") DEFAULT '"
-						+emptyJSON.toString()+"'";
-			
-			
-			if( ContextServiceConfig.PRIVACY_ENABLED )
-			{
-				newTableCommand = getPrivacyStorageString(newTableCommand);
-				//newTableCommand	= getPrivacyStorageString(newTableCommand);
-				// row format dynamic because we want TEXT columns to be stored 
-				// completely off the row, only pointer should be stored in the row, 
-				// otherwise default is storing 700 bytes for each TEXT in row.
-				
-				if( ContextServiceConfig.sqlDBType == SQL_DB_TYPE.SQLITE )
-				{
-					newTableCommand = newTableCommand +" )";
-				}
-				else
-				{
-					if(!ContextServiceConfig.IN_MEMORY_MYSQL)
-					{
-						newTableCommand = newTableCommand +" ) ROW_FORMAT=DYNAMIC";
-					}
-					else
-					{
-						newTableCommand = newTableCommand +" )";
-					}
-				}
-			}
-			else
-			{
-				newTableCommand = newTableCommand +" )";
-			}
-			
-			if( (ContextServiceConfig.sqlDBType == SQL_DB_TYPE.MYSQL) 
-					&& (ContextServiceConfig.IN_MEMORY_MYSQL) )
-			{
-				newTableCommand = newTableCommand +" ENGINE = MEMORY";
-			}
-			
-			stmt.executeUpdate(newTableCommand);
+			stmt.executeUpdate(hashIndexTableCmd);
 		}
 		catch( SQLException mysqlEx )
 		{
@@ -175,20 +83,112 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 		}
 	}
 	
-//	private void createIndexesInSQLite(String tableName, 
-//			HashMap<String, AttributePartitionInfo> subspaceAttributes, Statement  stmt)
-//	{
-//		Iterator<String> attrIter = subspaceAttributes.keySet().iterator();
-//		
-//		while( attrIter.hasNext() )
-//		{
-//			String attrName = attrIter.next();
-//			
-//			String indexName = tableName+attrName+"Index";
-//			
-//			String cmd = "CREATE INDEX "+indexName+" ON "+tableName+" ("+attrName+")";
-//		}
-//	}
+	/**
+	 * returns attribute index table creation command. 
+	 * @return
+	 */
+	public String getAttrIndexTableCreationCmd()
+	{
+		String tableName = RegionMappingDataStorageDB.ATTR_INDEX_TABLE_NAME;
+		
+		String newTableCommand = "create table "+tableName+" ( "
+			      + " nodeGUID Binary(20) PRIMARY KEY";
+		
+		newTableCommand = getDataStorageString(newTableCommand);
+		
+		if(ContextServiceConfig.PRIVACY_ENABLED)
+		{
+			newTableCommand = getPrivacyStorageString(newTableCommand);
+			// row format dynamic because we want TEXT columns to be stored completely off the row, 
+			// only pointer should be stored in the row, otherwise default is storing 700 bytes for 
+			// each TEXT in row.
+			
+			// sqlite doesn't support dynamic rows as it is an in-memory db.
+			if( ContextServiceConfig.sqlDBType == SQL_DB_TYPE.SQLITE )
+			{
+				newTableCommand = newTableCommand +" )";
+			}
+			else
+			{
+				if(!ContextServiceConfig.IN_MEMORY_MYSQL)
+				{
+					newTableCommand = newTableCommand +" ) ROW_FORMAT=DYNAMIC";
+				}
+				else
+				{
+					newTableCommand = newTableCommand +" )";
+				}
+			}
+		}
+		else
+		{
+			newTableCommand = newTableCommand +" ) ";
+		}
+		
+		if( (ContextServiceConfig.sqlDBType == SQL_DB_TYPE.MYSQL) 
+								&& (ContextServiceConfig.IN_MEMORY_MYSQL) )
+		{
+			newTableCommand = newTableCommand +" ENGINE = MEMORY";
+		}
+		System.out.println("newTableCommand "+newTableCommand);
+		
+		return newTableCommand;
+	}
+	
+	public String getHashIndexTableCreationCmd()
+	{
+		String tableName = RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME;
+		String newTableCommand = "create table "+tableName+" ( "
+			      + " nodeGUID Binary(20) PRIMARY KEY";
+		
+		newTableCommand = getDataStorageString(newTableCommand);
+		
+		JSONObject emptyJSON = new JSONObject();
+		
+		//TODO default empty json is added for bulkloading and not appropriately tested for privacy case
+		newTableCommand = newTableCommand + " , "
+					+RegionMappingDataStorageDB.unsetAttrsColName+" VARCHAR("
+				+RegionMappingDataStorageDB.varcharSizeForunsetAttrsCol+") DEFAULT '"
+					+emptyJSON.toString()+"'";
+		
+		
+		if( ContextServiceConfig.PRIVACY_ENABLED )
+		{
+			newTableCommand = getPrivacyStorageString(newTableCommand);
+			//newTableCommand	= getPrivacyStorageString(newTableCommand);
+			// row format dynamic because we want TEXT columns to be stored 
+			// completely off the row, only pointer should be stored in the row, 
+			// otherwise default is storing 700 bytes for each TEXT in row.
+			
+			if( ContextServiceConfig.sqlDBType == SQL_DB_TYPE.SQLITE )
+			{
+				newTableCommand = newTableCommand +" )";
+			}
+			else
+			{
+				if(!ContextServiceConfig.IN_MEMORY_MYSQL)
+				{
+					newTableCommand = newTableCommand +" ) ROW_FORMAT=DYNAMIC";
+				}
+				else
+				{
+					newTableCommand = newTableCommand +" )";
+				}
+			}
+		}
+		else
+		{
+			newTableCommand = newTableCommand +" )";
+		}
+		
+		if( (ContextServiceConfig.sqlDBType == SQL_DB_TYPE.MYSQL) 
+				&& (ContextServiceConfig.IN_MEMORY_MYSQL) )
+		{
+			newTableCommand = newTableCommand +" ENGINE = MEMORY";
+		}
+		return newTableCommand;
+	}
+	
 	
 	public int processSearchQueryUsingAttrIndex
 			(HashMap<String, AttributeValueRange> queryAttrValRange, 
