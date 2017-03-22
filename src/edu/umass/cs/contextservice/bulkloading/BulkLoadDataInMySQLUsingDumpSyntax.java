@@ -127,11 +127,12 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 			
 			
 			//LOCK TABLES `attrIndexDataStorage` WRITE;
-			str = "LOCK TABLES `"+RegionMappingDataStorageDB.ATTR_INDEX_TABLE_NAME+"` WRITE;";
+			str = "LOCK TABLES `"+RegionMappingDataStorageDB.ATTR_INDEX_TABLE_NAME
+						+"` WRITE , "+" `"+RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME+"` WRITE;";
 			bw.write(str+"\n");
 			
-			str = "LOCK TABLES `"+RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME+"` WRITE;";
-			bw.write(str+"\n");
+			//str = "LOCK TABLES `"+RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME+"` WRITE;";
+			//bw.write(str+"\n");
 			
 			
 			String attrInsertQuery = "INSERT INTO `"+RegionMappingDataStorageDB.ATTR_INDEX_TABLE_NAME
