@@ -112,7 +112,7 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 			// creates data storage tables.
 			//guidDBStorage.createDataStorageTables();
 			String attrIndexTableCmd = guidDBStorage.getAttrIndexTableCreationCmd();
-			bw.write(attrIndexTableCmd+"\n");
+			bw.write(attrIndexTableCmd+";"+"\n");
 			
 			
 			//LOCK TABLES `attrIndexDataStorage` WRITE;
@@ -248,7 +248,7 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 				{
 					bw.close();
 				}
-				catch (IOException e) 
+				catch (IOException e)
 				{
 					e.printStackTrace();
 				}
