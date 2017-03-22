@@ -8,4 +8,6 @@ public abstract class AbstractDataSource
 	public static enum DB_REQUEST_TYPE {UPDATE, SELECT};
 	
 	public abstract Connection getConnection(DB_REQUEST_TYPE dbReqType) throws SQLException;
+	
+	public abstract String getCmdLineConnString();
 }

@@ -19,9 +19,11 @@ public class MySQLDataSource extends AbstractDataSource
 	private final HashMap<Integer, SQLNodeInfo> sqlNodeInfoMap;
 	
     private ComboPooledDataSource cpds;
+    private final int myNodeId;
 
     public MySQLDataSource(Integer myNodeID) throws IOException, SQLException, PropertyVetoException 
     {
+    	myNodeId = myNodeID;
     	this.sqlNodeInfoMap = new HashMap<Integer, SQLNodeInfo>();
     	readDBNodeSetup();
     	
@@ -81,6 +83,15 @@ public class MySQLDataSource extends AbstractDataSource
     	}
         return conn;
     }
+    
+    @Override
+	public String getCmdLineConnString() 
+    {
+    	String str = "mysql --"+sqlNodeInfoMap.get(myNodeId).arguments+" -u "+
+    			sqlNodeInfoMap.get(myNodeId).username+" --password="+sqlNodeInfoMap.get(myNodeId).password;
+    			
+		return str;
+	}
     
 	private void readDBNodeSetup() throws NumberFormatException, IOException
 	{

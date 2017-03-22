@@ -42,4 +42,10 @@ public class SQLiteDataSource extends AbstractDataSource
     {
     	return searchPool.getConnection();
     }
+
+	@Override
+	public String getCmdLineConnString() {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

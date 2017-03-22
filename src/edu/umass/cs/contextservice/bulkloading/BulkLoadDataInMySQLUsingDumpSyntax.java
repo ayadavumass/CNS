@@ -77,8 +77,14 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 	 */
 	public void bulkLoadData()
 	{
+		long start = System.currentTimeMillis();
 		writeMySQLDumpFile();
-		loadDataInMySQL();
+		System.out.println("MySQL dump file writing ended in "
+								+(System.currentTimeMillis()-start));
+		
+		//loadDataInMySQL();
+		loadDataUsingMySQLScript();
+		
 		//List<String> attributeOrderList = writeNodeSpecificBulkLoadingFiles();
 		//loadDataFromFilesInMysql(attributeOrderList);
 	}
@@ -315,6 +321,33 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 			}
 		}
 	}
+	
+	
+	private void loadDataUsingMySQLScript()
+	{	
+		String connStr = dataSource.getCmdLineConnString();
+		
+		String currentDir 		 = System.getProperty("user.dir");
+		String bulkLoadFilePath = currentDir+"/"
+					+ContextServiceConfig.BULK_LOAD_FILE+myId;
+		
+		String loadCmd = connStr +" < "+bulkLoadFilePath;
+		try 
+		{
+			long start = System.currentTimeMillis();
+			Process p = Runtime.getRuntime().exec(loadCmd);
+			p.waitFor();
+			System.out.println("Data loading ended in "+(System.currentTimeMillis()-start));
+		} catch (IOException e) 
+		{
+			e.printStackTrace();
+		} catch (InterruptedException e) 
+		{
+			e.printStackTrace();
+		}
+		
+	}
+	
 	
 	
 	private boolean checkIfTupleMapsToNode(String tupleString, 
