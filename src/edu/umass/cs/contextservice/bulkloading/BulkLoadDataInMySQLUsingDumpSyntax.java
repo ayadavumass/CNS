@@ -276,7 +276,11 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 			// Initialize object for ScripRunner
 			ScriptRunner sr = new ScriptRunner(myConn);
 			sr.setLogWriter(new PrintWriter("/dev/null"));
-
+			
+			sr.setAutoCommit(false);
+			sr.setSendFullScript(true);
+			sr.setStopOnError(false);
+			
 			// Give the input file to Reader
 			Reader reader = new BufferedReader(
 			                               new FileReader(bulkLoadFilePath));
