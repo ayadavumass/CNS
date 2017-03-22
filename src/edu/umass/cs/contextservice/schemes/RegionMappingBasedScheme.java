@@ -117,8 +117,10 @@ public class RegionMappingBasedScheme extends AbstractScheme
 			}
 			case ContextServiceConfig.DEMAND_AWARE:
 			{
-				regionMappingPolicy = new FileBasedRegionMappingPolicyWithDB(
-						dataSource, AttributeTypes.attributeMap, nc);
+//				regionMappingPolicy = new FileBasedRegionMappingPolicyWithDB(
+//						dataSource, AttributeTypes.attributeMap, nc);
+				
+				regionMappingPolicy = new FileBasedRegionMappingPolicy(AttributeTypes.attributeMap, nc);
 				break;
 			}
 			case ContextServiceConfig.HYPERDEX:
