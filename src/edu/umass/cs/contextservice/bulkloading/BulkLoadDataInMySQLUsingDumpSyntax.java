@@ -238,7 +238,6 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 			
 			
 			
-			
 			str = "LOCK TABLES `"+RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME+"` WRITE;";
 			bw.write(str+"\n");
 			
@@ -269,19 +268,12 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 					hashInsertQuery = hashInsertQuery 
 							+ "( "+RegionMappingDataStorageDB.GUID_COL_NAME;
 					
-					
 					// first column is guid and the attributes in order.
 					String[] parsed = currLine.split(",");
 					// ignoring fisr column, that should be guid
 					for(int i=1; i<parsed.length; i++)
 					{
 						String attrName = parsed[i].trim();
-						if(!AttributeTypes.attributeMap.containsKey(attrName))
-						{
-							throw new IOException("Attribute "+attrName
-													+" not recongnized by CNS");
-						}
-						attributeOrderList.add(attrName);
 						
 						hashInsertQuery = hashInsertQuery + ","+attrName;
 					}
@@ -333,8 +325,7 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 							hashnumLinesBatched = 0;
 							hashfirsttuple = true;
 						}
-					}
-					
+					}	
 				}
 			}
 			
