@@ -114,27 +114,40 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 			str = "DROP TABLE IF EXISTS `"+RegionMappingDataStorageDB.ATTR_INDEX_TABLE_NAME+"`;";
 			bw.write(str+"\n");
 			
-			//str = "DROP TABLE IF EXISTS `"+RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME+"`;";
-			//bw.write(str+"\n");
+			str = "DROP TABLE IF EXISTS `"+RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME+"`;";
+			bw.write(str+"\n");
 			
 			// creates data storage tables.
 			//guidDBStorage.createDataStorageTables();
 			String attrIndexTableCmd = guidDBStorage.getAttrIndexTableCreationCmd();
 			bw.write(attrIndexTableCmd+";"+"\n");
 			
+			String hashIndexTableCmd = guidDBStorage.getHashIndexTableCreationCmd();
+			bw.write(hashIndexTableCmd+";"+"\n");
+			
 			
 			//LOCK TABLES `attrIndexDataStorage` WRITE;
 			str = "LOCK TABLES `"+RegionMappingDataStorageDB.ATTR_INDEX_TABLE_NAME+"` WRITE;";
 			bw.write(str+"\n");
 			
-			String insertQuery = "INSERT INTO `"+RegionMappingDataStorageDB.ATTR_INDEX_TABLE_NAME
+			str = "LOCK TABLES `"+RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME+"` WRITE;";
+			bw.write(str+"\n");
+			
+			
+			String attrInsertQuery = "INSERT INTO `"+RegionMappingDataStorageDB.ATTR_INDEX_TABLE_NAME
 									+"` ";
+			
+			String hashInsertQuery = "INSERT INTO `"+RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME
+					+"` ";
 			
 			String currLine;
 			boolean firstline  = true;
-			boolean firsttuple = true;
+			boolean attrfirsttuple = true;
+			boolean hashfirsttuple = true;
 			
-			long numLinesBatched = 0;
+			long attrnumLinesBatched = 0;
+			long hashnumLinesBatched = 0;
+			
 			
 			while( (currLine = br.readLine()) != null )
 			{
@@ -146,8 +159,12 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 						// first line contains the column order
 					}
 					
-					insertQuery = insertQuery 
+					attrInsertQuery = attrInsertQuery 
 									+ "( "+RegionMappingDataStorageDB.GUID_COL_NAME;
+					
+					hashInsertQuery = hashInsertQuery 
+							+ "( "+RegionMappingDataStorageDB.GUID_COL_NAME;
+					
 					
 					
 					// first column is guid and the attributes in order.
@@ -163,69 +180,115 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 						}
 						attributeOrderList.add(attrName);
 						
-						insertQuery = insertQuery + ","+attrName;
+						attrInsertQuery = attrInsertQuery + ","+attrName;
+						hashInsertQuery = hashInsertQuery + ","+attrName;
 					}
 					
-					insertQuery = insertQuery + ") VALUES ";
+					attrInsertQuery = attrInsertQuery + ") VALUES ";
+					hashInsertQuery = hashInsertQuery + ") VALUES ";
+					
 					firstline = false;
 				}
 				else
 				{
+					String[] tupleParsed = currLine.split(",");
+					String currTuple 
+							= getATupleForInsertQuery(tupleParsed, attributeOrderList);
+					
 					boolean mapsOnNode 
-							= checkIfTupleMapsToNode(currLine, attributeOrderList);
+							= checkIfTupleMapsToNode(tupleParsed, attributeOrderList);
 					
-					if( !mapsOnNode )
-						continue;
-					
-					
-					if(firsttuple)
+					if( mapsOnNode )
 					{
-						String currTuple 
-							= getATupleForInsertQuery(currLine, attributeOrderList);
-						
-						insertQuery = insertQuery + currTuple;
-						
-						firsttuple = false;
-					}
-					else
-					{
-						String currTuple 
-							= getATupleForInsertQuery(currLine, attributeOrderList);
-						
-						insertQuery = insertQuery + ","+currTuple;
-						firsttuple = false;
-					}
-					numLinesBatched++;
-					
-					
-					if( (numLinesBatched % MAX_INSERT_BATCHING) == 0 )
-					{
-						insertQuery = insertQuery + ";";
-						bw.write(insertQuery+"\n");
-						insertQuery = "INSERT INTO `"+RegionMappingDataStorageDB.ATTR_INDEX_TABLE_NAME
-								+"` ";
-						
-						insertQuery = insertQuery 
-								+ "( "+RegionMappingDataStorageDB.GUID_COL_NAME;
-						
-						for(int i=0; i<attributeOrderList.size(); i++)
+						if(attrfirsttuple)
 						{
-							String attrName = attributeOrderList.get(i);
-							insertQuery = insertQuery + ","+attrName;
+							attrInsertQuery = attrInsertQuery + currTuple;	
+							attrfirsttuple = false;
 						}
-				
-						insertQuery = insertQuery + ") VALUES ";
-						numLinesBatched = 0;
-						firsttuple = true;
+						else
+						{
+							attrInsertQuery = attrInsertQuery + ","+currTuple;
+							attrfirsttuple = false;
+						}
+						attrnumLinesBatched++;
+						
+						
+						if( (attrnumLinesBatched % MAX_INSERT_BATCHING) == 0 )
+						{
+							attrInsertQuery = attrInsertQuery + ";";
+							bw.write(attrInsertQuery+"\n");
+							attrInsertQuery = "INSERT INTO `"+RegionMappingDataStorageDB.ATTR_INDEX_TABLE_NAME
+									+"` ";
+							
+							attrInsertQuery = attrInsertQuery 
+									+ "( "+RegionMappingDataStorageDB.GUID_COL_NAME;
+							
+							for(int i=0; i<attributeOrderList.size(); i++)
+							{
+								String attrName = attributeOrderList.get(i);
+								attrInsertQuery = attrInsertQuery + ","+attrName;
+							}
+					
+							attrInsertQuery = attrInsertQuery + ") VALUES ";
+							attrnumLinesBatched = 0;
+							attrfirsttuple = true;
+						}
 					}
+					
+					
+					// tupleParsed[0] is guid
+					if(Utils.getConsistentHashingNodeID(tupleParsed[0], allNodeIDs) == myId)
+					{
+						if(hashfirsttuple)
+						{	
+							hashInsertQuery = hashInsertQuery + currTuple;
+							hashfirsttuple = false;
+						}
+						else
+						{	
+							hashInsertQuery = hashInsertQuery + ","+currTuple;
+							hashfirsttuple = false;
+						}
+						hashnumLinesBatched++;
+						
+						
+						if( (hashnumLinesBatched % MAX_INSERT_BATCHING) == 0 )
+						{
+							hashInsertQuery = hashInsertQuery + ";";
+							bw.write(hashInsertQuery+"\n");
+							hashInsertQuery = "INSERT INTO `"+RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME
+									+"` ";
+							
+							hashInsertQuery = hashInsertQuery 
+									+ "( "+RegionMappingDataStorageDB.GUID_COL_NAME;
+							
+							for(int i=0; i<attributeOrderList.size(); i++)
+							{
+								String attrName = attributeOrderList.get(i);
+								hashInsertQuery = hashInsertQuery + ","+attrName;
+							}
+					
+							hashInsertQuery = hashInsertQuery + ") VALUES ";
+							hashnumLinesBatched = 0;
+							hashfirsttuple = true;
+						}
+					}
+					
 				}
 			}
 			
 			// do the remaining
-			if(numLinesBatched > 0)
+			if(attrnumLinesBatched > 0)
 			{
-				insertQuery = insertQuery + ";";
-				bw.write(insertQuery+"\n");
+				attrInsertQuery = attrInsertQuery + ";";
+				bw.write(attrInsertQuery+"\n");
+			}
+			
+			// do the remaining
+			if(hashnumLinesBatched > 0)
+			{
+				hashInsertQuery = hashInsertQuery + ";";
+				bw.write(hashInsertQuery+"\n");
 			}
 			
 			// release the locks.
@@ -386,18 +449,17 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 	
 	
 	
-	private boolean checkIfTupleMapsToNode(String tupleString, 
+	private boolean checkIfTupleMapsToNode(String[] tupleParsed, 
 												List<String> attributeOrderList)
 	{
-		String[] parsed = tupleString.split(",");
 		HashMap<String, AttributeValueRange> attrValRangeMap 
 											= new HashMap<String, AttributeValueRange>();
 		
-		String guid = parsed[0];
-		for(int i=1; i<parsed.length; i++)
+		String guid = tupleParsed[0];
+		for(int i=1; i<tupleParsed.length; i++)
 		{
 			String attrName = attributeOrderList.get(i-1);
-			String attrVal = parsed[i];
+			String attrVal = tupleParsed[i];
 			attrValRangeMap.put(attrName, new AttributeValueRange(attrVal, attrVal));
 		}
 		
@@ -417,27 +479,25 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 	}
 	
 	
-	private String getATupleForInsertQuery(String tupleString, List<String> orderedAttrList)
-	{
-    	String[] parsed = tupleString.split(",");
-    	
-    	if( !(parsed.length == (orderedAttrList.size()+1)) )
+	private String getATupleForInsertQuery(String[] tupleParsed, List<String> orderedAttrList)
+	{	
+    	if( !(tupleParsed.length == (orderedAttrList.size()+1)) )
 		{
 			ContextServiceLogger.getLogger().warning("Bulkloading skipping line for "
-					+ "mismatch in number of attributes"+tupleString+"");
+					+ "mismatch in number of attributes"+tupleParsed.toString()+"");
 		}
     	
     	String currTuple = "(";
     	// first column is always GUID.
-    	currTuple = currTuple + "X'"+parsed[0]+"'";
+    	currTuple = currTuple + "X'"+tupleParsed[0]+"'";
     	
     	
-    	for(int i=1; i<parsed.length; i++)
+    	for(int i=1; i<tupleParsed.length; i++)
     	{
     		String attrName = orderedAttrList.get(i-1);
     		String attrValue = "";
     		
-    		attrValue = parsed[i];
+    		attrValue = tupleParsed[i];
 			
 			AttributeMetaInfo attrMetaInfo 
 						= AttributeTypes.attributeMap.get(attrName);
