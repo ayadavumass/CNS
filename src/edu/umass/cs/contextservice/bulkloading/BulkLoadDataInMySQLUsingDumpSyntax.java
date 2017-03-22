@@ -5,6 +5,7 @@ import java.io.BufferedWriter;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Reader;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -12,6 +13,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 
+import com.ibatis.common.jdbc.ScriptRunner;
 
 import edu.umass.cs.contextservice.attributeInfo.AttributeMetaInfo;
 import edu.umass.cs.contextservice.attributeInfo.AttributeTypes;
@@ -260,28 +262,42 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 					+ContextServiceConfig.BULK_LOAD_FILE+myId;
 		
 		Connection myConn  = null;
-		Statement  stmt    = null;
+		//Statement  stmt    = null;
 		try
 		{
 			myConn = dataSource.getConnection(DB_REQUEST_TYPE.UPDATE);
-			stmt   = myConn.createStatement();
+			//stmt   = myConn.createStatement();
 			
 			long start = System.currentTimeMillis();
 			
-			stmt.execute("source "+bulkLoadFilePath);
+			// Initialize object for ScripRunner
+			ScriptRunner sr = new ScriptRunner(myConn, false, false);
+
+			// Give the input file to Reader
+			Reader reader = new BufferedReader(
+			                               new FileReader(bulkLoadFilePath));
+
+			// Exctute script
+			sr.runScript(reader);
+
+						
+			//stmt.execute("source "+bulkLoadFilePath);
 			long end = System.currentTimeMillis();
 			System.out.println("Data loading ended "+(end-start));
 		}
 		catch( SQLException mysqlEx )
 		{
 			mysqlEx.printStackTrace();
+		} catch (IOException e) 
+		{
+			e.printStackTrace();
 		}
 		finally
 		{
 			try
 			{
-				if( stmt != null )
-					stmt.close();
+				//if( stmt != null )
+				//	stmt.close();
 				
 				if( myConn != null )
 					myConn.close();
