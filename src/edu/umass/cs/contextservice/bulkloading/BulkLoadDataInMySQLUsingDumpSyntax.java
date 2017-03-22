@@ -5,6 +5,7 @@ import java.io.BufferedWriter;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.io.Reader;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -13,7 +14,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 
-import com.ibatis.common.jdbc.ScriptRunner;
+import org.apache.ibatis.jdbc.ScriptRunner;
 
 import edu.umass.cs.contextservice.attributeInfo.AttributeMetaInfo;
 import edu.umass.cs.contextservice.attributeInfo.AttributeTypes;
@@ -273,7 +274,8 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 			long start = System.currentTimeMillis();
 			
 			// Initialize object for ScripRunner
-			ScriptRunner sr = new ScriptRunner(myConn, false, false);
+			ScriptRunner sr = new ScriptRunner(myConn);
+			sr.setLogWriter(new PrintWriter("/dev/null"));
 
 			// Give the input file to Reader
 			Reader reader = new BufferedReader(
