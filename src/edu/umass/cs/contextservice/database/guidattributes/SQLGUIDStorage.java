@@ -531,7 +531,6 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 	}
     
     
-    
     /**
 	 * Returns the search query, it doesn't execute. This
 	 * is done so that this can be executed as a nested query in privacy case.
@@ -886,7 +885,6 @@ public class SQLGUIDStorage implements GUIDStorageInterface
         				+tableName
         				+" nodeGUID "+nodeGUID+" "+(end-start)+" "+(end1-start1)+" "+(end2-end1));
         	}
-    		
     		ContextServiceLogger.getLogger().fine(this.myNodeID+" EXECUTING INSERT rowCount "
     					+rowCount+" insertQuery "+insertQuery);
         }

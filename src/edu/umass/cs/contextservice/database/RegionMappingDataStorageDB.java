@@ -27,6 +27,7 @@ public class RegionMappingDataStorageDB extends AbstractDataStorageDB
 	// maximum query length of 1000bytes
 	public static final int MAX_QUERY_LENGTH						= 1000;
 	
+	// FIXME: move these macros to contextserviceconfig file. 
 	//public static final String userQuery = "userQuery";
 	public static final String groupGUID 							= "groupGUID";
 	public static final String userIP 								= "userIP";
@@ -45,6 +46,10 @@ public class RegionMappingDataStorageDB extends AbstractDataStorageDB
 	public static final String ATTR_INDEX_TRIGGER_TABLE_NAME		= "triggerDataStorage";
 	
 	public static final String HASH_INDEX_TRIGGER_TABLE_NAME		= "queryHashTriggerDataStorage";
+	
+	// FIXME: use this macro at every place and change it to GUID instead of
+	// nodeGUID.
+	public static final String GUID_COL_NAME						= "nodeGUID";
 	
 	
 	//unsetAttrsColName is varchar type for now.
@@ -77,6 +82,12 @@ public class RegionMappingDataStorageDB extends AbstractDataStorageDB
 		}
 		
 		createTables();
+	}
+	
+	
+	public GUIDStorageInterface getGUIDStorageInterface()
+	{
+		return guidAttributesStorage;
 	}
 	
 	/**

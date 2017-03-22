@@ -18,6 +18,7 @@ import org.paukov.combinatorics.ICombinatoricsVector;
 
 import edu.umass.cs.contextservice.attributeInfo.AttributeTypes;
 import edu.umass.cs.contextservice.bulkloading.BulkLoadDataInMySQLFromAFile;
+import edu.umass.cs.contextservice.bulkloading.BulkLoadDataInMySQLUsingDumpSyntax;
 import edu.umass.cs.contextservice.common.CSNodeConfig;
 import edu.umass.cs.contextservice.config.ContextServiceConfig;
 import edu.umass.cs.contextservice.database.AbstractDataStorageDB;
@@ -160,10 +161,16 @@ public class RegionMappingBasedScheme extends AbstractScheme
 		
 		if(ContextServiceConfig.enableBulkLoading)
 		{
-			BulkLoadDataInMySQLFromAFile bulkLoad 
-					= new BulkLoadDataInMySQLFromAFile(this.getMyID(), 
-							ContextServiceConfig.bulkLoadingFilePath, dataSource,
-							regionMappingPolicy, this.allNodeIDs);
+//			BulkLoadDataInMySQLFromAFile bulkLoad 
+//					= new BulkLoadDataInMySQLFromAFile(this.getMyID(), 
+//							ContextServiceConfig.bulkLoadingFilePath, dataSource,
+//							regionMappingPolicy, this.allNodeIDs);
+			
+			BulkLoadDataInMySQLUsingDumpSyntax bulkLoad 
+			= new BulkLoadDataInMySQLUsingDumpSyntax(this.getMyID(), 
+					ContextServiceConfig.bulkLoadingFilePath, dataSource,
+					regionMappingPolicy, this.allNodeIDs, 
+					((RegionMappingDataStorageDB)hyperspaceDB).getGUIDStorageInterface());
 			
 			bulkLoad.bulkLoadData();
 		}

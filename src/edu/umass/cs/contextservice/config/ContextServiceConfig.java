@@ -205,6 +205,7 @@ public class ContextServiceConfig
 	
 	public static final String HASH_INDEX_FILE_PREFIX				= "hashIndexGuidsNodeId";
 	public static final String ATTR_INDEX_FILE_PREFIX				= "attrIndexGuidsNodeId";
+	public static final String BULK_LOAD_FILE						= "bulkLoadForNodeId";
 	
 	
 	public static boolean enableBulkLoading							= false;
