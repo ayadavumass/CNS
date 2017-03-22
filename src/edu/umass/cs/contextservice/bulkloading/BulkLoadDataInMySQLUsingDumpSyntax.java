@@ -5,6 +5,7 @@ import java.io.BufferedWriter;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.Reader;
 import java.sql.Connection;
@@ -332,20 +333,33 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 					+ContextServiceConfig.BULK_LOAD_FILE+myId;
 		
 		String loadCmd = connStr +" < "+bulkLoadFilePath;
+		System.out.println("loadCmd "+loadCmd);
+		
 		try 
 		{
 			long start = System.currentTimeMillis();
-			Process p = Runtime.getRuntime().exec(loadCmd);
-			p.waitFor();
+			Process proc = Runtime.getRuntime().exec(loadCmd); 
+			BufferedReader read = new BufferedReader(
+					new InputStreamReader(proc.getInputStream()));
+			try 
+			{
+				proc.waitFor();
+            } 
+			catch (InterruptedException e) 
+			{
+				System.out.println(e.getMessage());
+            }
+			
+			while (read.ready()) 
+			{
+				System.out.println(read.readLine());
+            }
 			System.out.println("Data loading ended in "+(System.currentTimeMillis()-start));
-		} catch (IOException e) 
-		{
-			e.printStackTrace();
-		} catch (InterruptedException e) 
-		{
-			e.printStackTrace();
 		}
-		
+		catch (IOException e) 
+		{
+			e.printStackTrace();
+        }
 	}
 	
 	
