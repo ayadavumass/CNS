@@ -110,9 +110,10 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 			String str = "use contextDB;";
 			bw.write(str+"\n");
 			
-			//DROP TABLE IF EXISTS `attrIndexDataStorage`;
+			
 			str = "DROP TABLE IF EXISTS `"+RegionMappingDataStorageDB.ATTR_INDEX_TABLE_NAME+"`;";
 			bw.write(str+"\n");
+			
 			
 			str = "DROP TABLE IF EXISTS `"+RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME+"`;";
 			bw.write(str+"\n");
@@ -126,28 +127,18 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 			bw.write(hashIndexTableCmd+";"+"\n");
 			
 			
-			//LOCK TABLES `attrIndexDataStorage` WRITE;
-			str = "LOCK TABLES `"+RegionMappingDataStorageDB.ATTR_INDEX_TABLE_NAME
-						+"` WRITE , "+" `"+RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME+"` WRITE;";
+			str = "LOCK TABLES `"+RegionMappingDataStorageDB.ATTR_INDEX_TABLE_NAME+"` WRITE;";
 			bw.write(str+"\n");
-			
-			//str = "LOCK TABLES `"+RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME+"` WRITE;";
-			//bw.write(str+"\n");
 			
 			
 			String attrInsertQuery = "INSERT INTO `"+RegionMappingDataStorageDB.ATTR_INDEX_TABLE_NAME
 									+"` ";
 			
-			String hashInsertQuery = "INSERT INTO `"+RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME
-					+"` ";
-			
 			String currLine;
 			boolean firstline  = true;
 			boolean attrfirsttuple = true;
-			boolean hashfirsttuple = true;
 			
 			long attrnumLinesBatched = 0;
-			long hashnumLinesBatched = 0;
 			
 			
 			while( (currLine = br.readLine()) != null )
@@ -162,10 +153,6 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 					
 					attrInsertQuery = attrInsertQuery 
 									+ "( "+RegionMappingDataStorageDB.GUID_COL_NAME;
-					
-					hashInsertQuery = hashInsertQuery 
-							+ "( "+RegionMappingDataStorageDB.GUID_COL_NAME;
-					
 					
 					
 					// first column is guid and the attributes in order.
@@ -182,11 +169,9 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 						attributeOrderList.add(attrName);
 						
 						attrInsertQuery = attrInsertQuery + ","+attrName;
-						hashInsertQuery = hashInsertQuery + ","+attrName;
 					}
 					
 					attrInsertQuery = attrInsertQuery + ") VALUES ";
-					hashInsertQuery = hashInsertQuery + ") VALUES ";
 					
 					firstline = false;
 				}
@@ -236,6 +221,81 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 						}
 					}
 					
+				}
+			}
+			
+			// do the remaining
+			if(attrnumLinesBatched > 0)
+			{
+				attrInsertQuery = attrInsertQuery + ";";
+				bw.write(attrInsertQuery+"\n");
+			}
+			
+			// release the locks.
+			str = "UNLOCK TABLES;";
+			bw.write(str+"\n");
+			
+			
+			
+			
+			
+			str = "LOCK TABLES `"+RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME+"` WRITE;";
+			bw.write(str+"\n");
+			
+			String hashInsertQuery = "INSERT INTO `"+RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME
+					+"` ";
+			
+			br.close();
+			
+			
+			
+			firstline  = true;
+			
+			boolean hashfirsttuple = true;
+			
+			long hashnumLinesBatched = 0;
+			br = new BufferedReader(new FileReader(allguidfilepath));
+			
+			while( (currLine = br.readLine()) != null )
+			{
+				if(firstline)
+				{
+					if( !currLine.startsWith("#") )
+					{
+						throw new IOException("Wrong file format: First line doesn't start with #");
+						// first line contains the column order
+					}
+					
+					hashInsertQuery = hashInsertQuery 
+							+ "( "+RegionMappingDataStorageDB.GUID_COL_NAME;
+					
+					
+					// first column is guid and the attributes in order.
+					String[] parsed = currLine.split(",");
+					// ignoring fisr column, that should be guid
+					for(int i=1; i<parsed.length; i++)
+					{
+						String attrName = parsed[i].trim();
+						if(!AttributeTypes.attributeMap.containsKey(attrName))
+						{
+							throw new IOException("Attribute "+attrName
+													+" not recongnized by CNS");
+						}
+						attributeOrderList.add(attrName);
+						
+						hashInsertQuery = hashInsertQuery + ","+attrName;
+					}
+					
+					hashInsertQuery = hashInsertQuery + ") VALUES ";
+					
+					firstline = false;
+				}
+				else
+				{
+					String[] tupleParsed = currLine.split(",");
+					String currTuple 
+							= getATupleForInsertQuery(tupleParsed, attributeOrderList);
+					
 					
 					// tupleParsed[0] is guid
 					if(Utils.getConsistentHashingNodeID(tupleParsed[0], allNodeIDs) == myId)
@@ -279,13 +339,6 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 			}
 			
 			// do the remaining
-			if(attrnumLinesBatched > 0)
-			{
-				attrInsertQuery = attrInsertQuery + ";";
-				bw.write(attrInsertQuery+"\n");
-			}
-			
-			// do the remaining
 			if(hashnumLinesBatched > 0)
 			{
 				hashInsertQuery = hashInsertQuery + ";";
@@ -295,6 +348,10 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 			// release the locks.
 			str = "UNLOCK TABLES;";
 			bw.write(str+"\n");
+			
+			
+			
+			
 		}
 		catch(IOException ex)
 		{
