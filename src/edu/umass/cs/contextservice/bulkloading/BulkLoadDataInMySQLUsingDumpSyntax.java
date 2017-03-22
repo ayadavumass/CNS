@@ -39,7 +39,7 @@ import edu.umass.cs.contextservice.utils.Utils;
 public class BulkLoadDataInMySQLUsingDumpSyntax
 {
 	// maximum inserts batched into one in the mysql dump file format
-	private static final int MAX_INSERT_BATCHING			= 10000;
+	private static final int MAX_INSERT_BATCHING			= 5000;
 	
 	private final int myId;
 	private final String allguidfilepath;
@@ -275,7 +275,7 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 			
 			// Initialize object for ScripRunner
 			ScriptRunner sr = new ScriptRunner(myConn);
-			sr.setLogWriter(new PrintWriter("/dev/null"));
+			sr.setLogWriter(new PrintWriter("mysqlout"));
 			
 			sr.setAutoCommit(false);
 			sr.setSendFullScript(true);
