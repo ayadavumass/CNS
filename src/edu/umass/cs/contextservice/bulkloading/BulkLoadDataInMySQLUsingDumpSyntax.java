@@ -332,7 +332,8 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 		String bulkLoadFilePath = currentDir+"/"
 					+ContextServiceConfig.BULK_LOAD_FILE+myId;
 		
-		String loadCmd = connStr +" < "+bulkLoadFilePath;
+		String loadCmd = connStr +" -e \"source "+bulkLoadFilePath+"\"";
+		
 		System.out.println("loadCmd "+loadCmd);
 		
 		try 
