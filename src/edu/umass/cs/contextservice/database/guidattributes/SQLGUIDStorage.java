@@ -106,23 +106,23 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 			// sqlite doesn't support dynamic rows as it is an in-memory db.
 			if( ContextServiceConfig.sqlDBType == SQL_DB_TYPE.SQLITE )
 			{
-				newTableCommand = newTableCommand +" )";
+				newTableCommand = newTableCommand +" ) DEFAULT CHARSET=latin1";
 			}
 			else
 			{
 				if(!ContextServiceConfig.IN_MEMORY_MYSQL)
 				{
-					newTableCommand = newTableCommand +" ) ROW_FORMAT=DYNAMIC";
+					newTableCommand = newTableCommand +" ) ROW_FORMAT=DYNAMIC DEFAULT CHARSET=latin1";
 				}
 				else
 				{
-					newTableCommand = newTableCommand +" )";
+					newTableCommand = newTableCommand +" ) DEFAULT CHARSET=latin1";
 				}
 			}
 		}
 		else
 		{
-			newTableCommand = newTableCommand +" ) ";
+			newTableCommand = newTableCommand +" ) DEFAULT CHARSET=latin1";
 		}
 		
 		if( (ContextServiceConfig.sqlDBType == SQL_DB_TYPE.MYSQL) 
@@ -162,23 +162,23 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 			
 			if( ContextServiceConfig.sqlDBType == SQL_DB_TYPE.SQLITE )
 			{
-				newTableCommand = newTableCommand +" )";
+				newTableCommand = newTableCommand +" ) DEFAULT CHARSET=latin1";
 			}
 			else
 			{
 				if(!ContextServiceConfig.IN_MEMORY_MYSQL)
 				{
-					newTableCommand = newTableCommand +" ) ROW_FORMAT=DYNAMIC";
+					newTableCommand = newTableCommand +" ) ROW_FORMAT=DYNAMIC DEFAULT CHARSET=latin1";
 				}
 				else
 				{
-					newTableCommand = newTableCommand +" )";
+					newTableCommand = newTableCommand +" ) DEFAULT CHARSET=latin1";
 				}
 			}
 		}
 		else
 		{
-			newTableCommand = newTableCommand +" )";
+			newTableCommand = newTableCommand +" ) DEFAULT CHARSET=latin1";
 		}
 		
 		if( (ContextServiceConfig.sqlDBType == SQL_DB_TYPE.MYSQL) 
