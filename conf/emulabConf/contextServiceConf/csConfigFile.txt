@@ -1,7 +1,9 @@
 triggerEnable=false
-numAttrsPerSubspace=3
+numAttrsPerSubspace=2
 privacyEnabled=false
 queryAllEnabled=false
-sqlPoolSize=10
+sqlPoolSize=1
 threadPoolSize=10
 regionMappingPolicy=DEMAND_AWARE
+enableBulkLoading=true
+bulkLoadingFile=/proj/MobilityFirst/ayadavDir/contextServiceScripts/guidInfoFile.txt
