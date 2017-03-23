@@ -35,7 +35,7 @@ import edu.umass.cs.contextservice.utils.Utils;
  */
 public class BulkLoadDataInMySQLUsingDumpSyntax
 {
-	public static final String LATIN_ENCODING		= "ISO-8859-1";
+	//public static final String LATIN_ENCODING		= "ISO-8859-1";
 	// maximum inserts batched into one in the mysql dump file format
 	private static final int MAX_INSERT_BATCHING			= 10000;
 	
@@ -105,18 +105,50 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 			//bw = new BufferedWriter(new FileWriter(ContextServiceConfig.BULK_LOAD_FILE+myId) );
 			
 		    bw = new BufferedWriter(
-		    		new OutputStreamWriter(new FileOutputStream(ContextServiceConfig.BULK_LOAD_FILE+myId),
-		        LATIN_ENCODING));
+		    		new OutputStreamWriter
+		    			(new FileOutputStream(ContextServiceConfig.BULK_LOAD_FILE+myId)));
 		    
-			String str = "use contextDB;";
+		    String str = "/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;";
+		    bw.write(str+"\n");
+		    
+			str = "/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;";
+			bw.write(str+"\n");
+			
+			str = "/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;";
+			bw.write(str+"\n");
+			
+			str = "/*!40101 SET NAMES utf8 */;";
+			bw.write(str+"\n");
+			
+			str = "/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;";
+			bw.write(str+"\n");
+			
+			str = "/*!40103 SET TIME_ZONE='+00:00' */;";
+			bw.write(str+"\n");
+			
+			str = "/*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;";
+			bw.write(str+"\n");
+			
+			str = "/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;";
+			bw.write(str+"\n");
+			
+			str = "/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;";
+			bw.write(str+"\n");
+			
+			str = "/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;";
+			bw.write(str+"\n");
+		    
+			str = "use contextDB;";
 			bw.write(str+"\n");
 			
 			
 			str = "DROP TABLE IF EXISTS `"+RegionMappingDataStorageDB.ATTR_INDEX_TABLE_NAME+"`;";
 			bw.write(str+"\n");
 			
+			str = "/*!40101 SET @saved_cs_client     = @@character_set_client */;";
+			bw.write(str+"\n");
 			
-			str = "DROP TABLE IF EXISTS `"+RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME+"`;";
+			str = "/*!40101 SET character_set_client = utf8 */;";
 			bw.write(str+"\n");
 			
 			// creates data storage tables.
@@ -124,11 +156,15 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 			String attrIndexTableCmd = guidDBStorage.getAttrIndexTableCreationCmd();
 			bw.write(attrIndexTableCmd+";"+"\n");
 			
-			String hashIndexTableCmd = guidDBStorage.getHashIndexTableCreationCmd();
-			bw.write(hashIndexTableCmd+";"+"\n");
+			
+			str = "/*!40101 SET character_set_client = @saved_cs_client */;";
+			bw.write(str+"\n");
 			
 			
 			str = "LOCK TABLES `"+RegionMappingDataStorageDB.ATTR_INDEX_TABLE_NAME+"` WRITE;";
+			bw.write(str+"\n");
+			
+			str = "/*!40000 ALTER TABLE `"+RegionMappingDataStorageDB.ATTR_INDEX_TABLE_NAME+"` DISABLE KEYS */;";
 			bw.write(str+"\n");
 			
 			
@@ -232,15 +268,40 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 				bw.write(attrInsertQuery+"\n");
 			}
 			
+			
+			str = "/*!40000 ALTER TABLE `attrIndexDataStorage` ENABLE KEYS */;";
+			bw.write(str+"\n");
+			
 			// release the locks.
 			str = "UNLOCK TABLES;";
 			bw.write(str+"\n");
 			
 			
+			str = "DROP TABLE IF EXISTS `"+RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME+"`;";
+			bw.write(str+"\n");
+			
+			
+			str = "/*!40101 SET @saved_cs_client     = @@character_set_client */;";
+			bw.write(str+"\n");
+			
+			str = "/*!40101 SET character_set_client = utf8 */;";
+			bw.write(str+"\n");
+			
+			
+			String hashIndexTableCmd = guidDBStorage.getHashIndexTableCreationCmd();
+			bw.write(hashIndexTableCmd+";"+"\n");
+			
+			
+			str = "/*!40101 SET character_set_client = @saved_cs_client */;";
+			bw.write(str+"\n");
 			
 			
 			str = "LOCK TABLES `"+RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME+"` WRITE;";
 			bw.write(str+"\n");
+			
+			str = "/*!40000 ALTER TABLE `guidHashDataStorage` DISABLE KEYS */;";
+			bw.write(str+"\n");
+			
 			
 			String hashInsertQuery = "INSERT INTO `"+RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME
 					+"` ";
@@ -337,10 +398,36 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 				bw.write(hashInsertQuery+"\n");
 			}
 			
+			str = "/*!40000 ALTER TABLE `guidHashDataStorage` ENABLE KEYS */;";
+			bw.write(str+"\n");
+			
 			// release the locks.
 			str = "UNLOCK TABLES;";
 			bw.write(str+"\n");
 			
+			str = "/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;";
+			bw.write(str+"\n");
+			
+			str = "/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;";
+			bw.write(str+"\n");
+			
+			str = "/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;";
+			bw.write(str+"\n");
+			
+			str = "/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;";
+			bw.write(str+"\n");
+			
+			str = "/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;";
+			bw.write(str+"\n");
+			
+			str = "/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;";
+			bw.write(str+"\n");
+			
+			str= "/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;";
+			bw.write(str+"\n");
+			
+			str = "/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;";
+			bw.write(str+"\n");
 		}
 		catch(IOException ex)
 		{
@@ -372,7 +459,8 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 				}
 			}
 		}
-	}	
+	}
+	
 	
 	private void loadDataUsingMySQLScript()
 	{	
@@ -467,7 +555,7 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 	
 	
 	private String getATupleForInsertQuery(String[] tupleParsed, List<String> orderedAttrList) throws UnsupportedEncodingException
-	{	
+	{
     	if( !(tupleParsed.length == (orderedAttrList.size()+1)) )
 		{
 			ContextServiceLogger.getLogger().warning("Bulkloading skipping line for "
@@ -476,9 +564,9 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
     	
     	String currTuple = "(";
     	// first column is always GUID.
-    	String latinCode = new String(Utils.hexStringToByteArray(tupleParsed[0]), LATIN_ENCODING);
+    	//String latinCode = new String(Utils.hexStringToByteArray(tupleParsed[0]), LATIN_ENCODING);
     	
-    	currTuple = currTuple + "'"+latinCode+"'";
+    	currTuple = currTuple + "'X"+tupleParsed[0]+"'";
     	
     	
     	for(int i=1; i<tupleParsed.length; i++)
@@ -498,10 +586,11 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 					(attrValue, dataType)+"";
 		    
 		    currTuple = currTuple +","+attrValue;
-    	}	
+    	}
     	currTuple = currTuple +")";
     	return currTuple;
-	}	
+	}
+	
 	
 	private boolean ifListContainsMyId(List<Integer> nodeList)
 	{
