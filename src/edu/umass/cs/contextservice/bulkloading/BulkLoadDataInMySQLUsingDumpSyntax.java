@@ -523,7 +523,6 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 	}
 	
 	
-	
 	private boolean checkIfTupleMapsToNode(String[] tupleParsed, 
 												List<String> attributeOrderList)
 	{
