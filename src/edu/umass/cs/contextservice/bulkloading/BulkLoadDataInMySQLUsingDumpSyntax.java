@@ -37,7 +37,7 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 {
 	//public static final String LATIN_ENCODING		= "ISO-8859-1";
 	// maximum inserts batched into one in the mysql dump file format
-	private static final int MAX_INSERT_BATCHING			= 10000;
+	private static final int MAX_INSERT_BATCHING			= 15000;
 	
 	private final int myId;
 	private final String allguidfilepath;
@@ -87,6 +87,7 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 		//loadDataFromFilesInMysql(attributeOrderList);
 	}
 	
+	
 	/**
 	 * writeMySQLDumpFile() function reads the all guids file and filters GUIDs that 
 	 * needs to be stored at this node and writes a MySQL dump format file for that.
@@ -106,7 +107,7 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 			
 		    bw = new BufferedWriter(
 		    		new OutputStreamWriter
-		    			(new FileOutputStream(ContextServiceConfig.BULK_LOAD_FILE+myId)));
+		    			(new FileOutputStream(ContextServiceConfig.BULK_LOAD_FILE+myId+".sql")));
 		    
 		    String str = "/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;";
 		    bw.write(str+"\n");
@@ -463,24 +464,24 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 	
 	
 	private void loadDataUsingMySQLScript()
-	{	
+	{
 		String connStr = dataSource.getCmdLineConnString();
 		
 		String currentDir 		 = System.getProperty("user.dir");
 		String bulkLoadFilePath = currentDir+"/"
-					+ContextServiceConfig.BULK_LOAD_FILE+myId;
+					+ContextServiceConfig.BULK_LOAD_FILE+myId+".sql";
 		
 		BufferedWriter bw = null;
 		String loadCmd = connStr +" -e \"source "+bulkLoadFilePath+"\"";
 		
 		System.out.println("loadCmd "+loadCmd);
 		
-		try 
+		try
 		{
 			String scriptname = "bulkloadingScript"+myId+".sh";
-//			bw = new BufferedWriter(new FileWriter(scriptname));
-//			bw.write(loadCmd+"\n");
-//			bw.close();
+			bw = new BufferedWriter(new FileWriter(scriptname));
+			bw.write(loadCmd+"\n");
+			bw.close();
 			
 			Runtime.getRuntime().exec("chmod +x "+scriptname).waitFor();
 			
