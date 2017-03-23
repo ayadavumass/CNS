@@ -566,7 +566,7 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
     	// first column is always GUID.
     	//String latinCode = new String(Utils.hexStringToByteArray(tupleParsed[0]), LATIN_ENCODING);
     	
-    	currTuple = currTuple + "'X"+tupleParsed[0]+"'";
+    	currTuple = currTuple + "X'"+tupleParsed[0]+"'";
     	
     	
     	for(int i=1; i<tupleParsed.length; i++)
