@@ -2,10 +2,12 @@ package edu.umass.cs.contextservice.bulkloading;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -100,8 +102,12 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 		try
 		{
 			br = new BufferedReader(new FileReader(allguidfilepath));
-			bw = new BufferedWriter(new FileWriter(ContextServiceConfig.BULK_LOAD_FILE+myId));
+			//bw = new BufferedWriter(new FileWriter(ContextServiceConfig.BULK_LOAD_FILE+myId) );
 			
+		    bw = new BufferedWriter(
+		    		new OutputStreamWriter(new FileOutputStream(ContextServiceConfig.BULK_LOAD_FILE+myId),
+		        LATIN_ENCODING));
+		    
 			String str = "use contextDB;";
 			bw.write(str+"\n");
 			
