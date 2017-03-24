@@ -599,7 +599,7 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
     	else
     	{
     		// for unset attr
-    		currTuple = currTuple +" , {} )";
+    		currTuple = currTuple +" , '{}' )";
     	}
     	return currTuple;
 	}
