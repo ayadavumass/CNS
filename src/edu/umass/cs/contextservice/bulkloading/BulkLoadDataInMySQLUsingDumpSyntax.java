@@ -189,8 +189,8 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 						// first line contains the column order
 					}
 					
-					attrInsertQuery = attrInsertQuery 
-									+ "( "+RegionMappingDataStorageDB.GUID_COL_NAME;
+					//attrInsertQuery = attrInsertQuery 
+					//				+ "( "+RegionMappingDataStorageDB.GUID_COL_NAME;
 					
 					
 					// first column is guid and the attributes in order.
@@ -206,10 +206,11 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 						}
 						attributeOrderList.add(attrName);
 						
-						attrInsertQuery = attrInsertQuery + ","+attrName;
+						//attrInsertQuery = attrInsertQuery + ","+attrName;
 					}
 					
-					attrInsertQuery = attrInsertQuery + ") VALUES ";
+					//attrInsertQuery = attrInsertQuery + ") VALUES ";
+					attrInsertQuery = attrInsertQuery + " VALUES ";
 					
 					firstline = false;
 				}
@@ -217,7 +218,7 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 				{
 					String[] tupleParsed = currLine.split(",");
 					String currTuple 
-							= getATupleForInsertQuery(tupleParsed, attributeOrderList);
+							= getATupleForInsertQuery(tupleParsed, attributeOrderList, false);
 					
 					boolean mapsOnNode 
 							= checkIfTupleMapsToNode(tupleParsed, attributeOrderList);
@@ -244,16 +245,17 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 							attrInsertQuery = "INSERT INTO `"+RegionMappingDataStorageDB.ATTR_INDEX_TABLE_NAME
 									+"` ";
 							
-							attrInsertQuery = attrInsertQuery 
-									+ "( "+RegionMappingDataStorageDB.GUID_COL_NAME;
+							//attrInsertQuery = attrInsertQuery 
+							//		+ "( "+RegionMappingDataStorageDB.GUID_COL_NAME;
 							
-							for(int i=0; i<attributeOrderList.size(); i++)
-							{
-								String attrName = attributeOrderList.get(i);
-								attrInsertQuery = attrInsertQuery + ","+attrName;
-							}
+//							for(int i=0; i<attributeOrderList.size(); i++)
+//							{
+//								String attrName = attributeOrderList.get(i);
+//								//attrInsertQuery = attrInsertQuery + ","+attrName;
+//							}
 					
-							attrInsertQuery = attrInsertQuery + ") VALUES ";
+							//attrInsertQuery = attrInsertQuery + ") VALUES ";
+							attrInsertQuery = attrInsertQuery + " VALUES ";
 							attrnumLinesBatched = 0;
 							attrfirsttuple = true;
 						}
@@ -328,20 +330,21 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 						// first line contains the column order
 					}
 					
-					hashInsertQuery = hashInsertQuery 
-							+ "( "+RegionMappingDataStorageDB.GUID_COL_NAME;
+					//hashInsertQuery = hashInsertQuery 
+					//		+ "( "+RegionMappingDataStorageDB.GUID_COL_NAME;
 					
 					// first column is guid and the attributes in order.
-					String[] parsed = currLine.split(",");
+					//String[] parsed = currLine.split(",");
 					// ignoring fisr column, that should be guid
-					for(int i=1; i<parsed.length; i++)
-					{
-						String attrName = parsed[i].trim();
-						
-						hashInsertQuery = hashInsertQuery + ","+attrName;
-					}
+//					for(int i=1; i<parsed.length; i++)
+//					{
+//						String attrName = parsed[i].trim();
+//						
+//						//hashInsertQuery = hashInsertQuery + ","+attrName;
+//					}
 					
-					hashInsertQuery = hashInsertQuery + ") VALUES ";
+					//hashInsertQuery = hashInsertQuery + ") VALUES ";
+					hashInsertQuery = hashInsertQuery + " VALUES ";
 					
 					firstline = false;
 				}
@@ -349,7 +352,7 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 				{
 					String[] tupleParsed = currLine.split(",");
 					String currTuple 
-							= getATupleForInsertQuery(tupleParsed, attributeOrderList);
+							= getATupleForInsertQuery(tupleParsed, attributeOrderList, true);
 					
 					
 					// tupleParsed[0] is guid
@@ -375,16 +378,17 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 							hashInsertQuery = "INSERT INTO `"+RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME
 									+"` ";
 							
-							hashInsertQuery = hashInsertQuery 
-									+ "( "+RegionMappingDataStorageDB.GUID_COL_NAME;
+							//hashInsertQuery = hashInsertQuery 
+							//		+ "( "+RegionMappingDataStorageDB.GUID_COL_NAME;
 							
-							for(int i=0; i<attributeOrderList.size(); i++)
-							{
-								String attrName = attributeOrderList.get(i);
-								hashInsertQuery = hashInsertQuery + ","+attrName;
-							}
+//							for(int i=0; i<attributeOrderList.size(); i++)
+//							{
+//								String attrName = attributeOrderList.get(i);
+//								//hashInsertQuery = hashInsertQuery + ","+attrName;
+//							}
 					
-							hashInsertQuery = hashInsertQuery + ") VALUES ";
+							//hashInsertQuery = hashInsertQuery + ") VALUES ";
+							hashInsertQuery = hashInsertQuery + " VALUES ";
 							hashnumLinesBatched = 0;
 							hashfirsttuple = true;
 						}
@@ -554,7 +558,8 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 	}
 	
 	
-	private String getATupleForInsertQuery(String[] tupleParsed, List<String> orderedAttrList) throws UnsupportedEncodingException
+	private String getATupleForInsertQuery(String[] tupleParsed, 
+				List<String> orderedAttrList, boolean hashIndex) throws UnsupportedEncodingException
 	{
     	if( !(tupleParsed.length == (orderedAttrList.size()+1)) )
 		{
@@ -587,7 +592,15 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 		    
 		    currTuple = currTuple +","+attrValue;
     	}
-    	currTuple = currTuple +")";
+    	if(!hashIndex)
+    	{
+    		currTuple = currTuple +")";
+    	}
+    	else
+    	{
+    		// for unset attr
+    		currTuple = currTuple +" , {} )";
+    	}
     	return currTuple;
 	}
 	
