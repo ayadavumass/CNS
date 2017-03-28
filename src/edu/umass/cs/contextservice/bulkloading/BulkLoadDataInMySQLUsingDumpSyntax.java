@@ -76,7 +76,8 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 	public void bulkLoadData()
 	{
 		long start = System.currentTimeMillis();
-		writeMySQLDumpFile();
+		//writeMySQLDumpFile();
+		writeMySQLDumpFileWithSingleRead();
 		System.out.println("MySQL dump file writing ended in "
 								+(System.currentTimeMillis()-start));
 		
@@ -191,7 +192,6 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 					
 					//attrInsertQuery = attrInsertQuery 
 					//				+ "( "+RegionMappingDataStorageDB.GUID_COL_NAME;
-					
 					
 					// first column is guid and the attributes in order.
 					String[] parsed = currLine.split(",");
@@ -433,6 +433,256 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 			
 			str = "/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;";
 			bw.write(str+"\n");
+		}
+		catch(IOException ex)
+		{
+			ex.printStackTrace();
+		}
+		finally
+		{
+			if(br != null)
+			{
+				try
+				{
+					br.close();
+				}
+				catch (IOException e) 
+				{
+					e.printStackTrace();
+				}
+			}
+			
+			if(bw != null)
+			{
+				try
+				{
+					bw.close();
+				}
+				catch (IOException e)
+				{
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+	
+	
+	/**
+	 * writeMySQLDumpFile() function reads the all guids file and filters GUIDs that 
+	 * needs to be stored at this node and writes a MySQL dump format file for that.
+	 * This function also returns an attribute list in-order.
+	 * @return
+	 */
+	private void writeMySQLDumpFileWithSingleRead()
+	{
+		BufferedReader br 			 = null;
+		BufferedWriter bw  		 	 = null;
+		
+		List<String> attributeOrderList = new LinkedList<String>();
+		try
+		{
+			br = new BufferedReader(new FileReader(allguidfilepath));
+			//bw = new BufferedWriter(new FileWriter(ContextServiceConfig.BULK_LOAD_FILE+myId) );
+			
+		    bw = new BufferedWriter(
+		    		new OutputStreamWriter
+		    			(new FileOutputStream(ContextServiceConfig.BULK_LOAD_FILE+myId+".sql")));
+			
+			String str = "/*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;";
+			bw.write(str+"\n");
+			
+			str = "/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;";
+			bw.write(str+"\n");
+			
+		    str = "CREATE DATABASE /*!32312 IF NOT EXISTS*/ `contextDB` /*!40100 DEFAULT CHARACTER SET latin1 */;";
+		    bw.write(str+"\n");
+		    
+			str = "use contextDB;";
+			bw.write(str+"\n");
+			
+			
+			str = "DROP TABLE IF EXISTS `"+RegionMappingDataStorageDB.ATTR_INDEX_TABLE_NAME+"`;";
+			bw.write(str+"\n");
+			
+			str = "DROP TABLE IF EXISTS `"+RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME+"`;";
+			bw.write(str+"\n");
+			
+			// creates data storage tables.
+			//guidDBStorage.createDataStorageTables();
+			String attrIndexTableCmd = guidDBStorage.getAttrIndexTableCreationCmd();
+			bw.write(attrIndexTableCmd+";"+"\n");
+			
+			
+			String hashIndexTableCmd = guidDBStorage.getHashIndexTableCreationCmd();
+			bw.write(hashIndexTableCmd+";"+"\n");
+			
+			
+			String attrInsertQuery = "INSERT INTO `"+RegionMappingDataStorageDB.ATTR_INDEX_TABLE_NAME
+									+"` ";
+			
+			String hashInsertQuery = "INSERT INTO `"+RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME
+									+"` ";
+			
+			String currLine;
+			boolean firstline  = true;
+			
+			boolean attrfirsttuple = true;
+			long attrnumLinesBatched = 0;
+			
+			boolean hashfirsttuple = true;
+			long hashnumLinesBatched = 0;
+			
+			
+			while( (currLine = br.readLine()) != null )
+			{
+				if(firstline)
+				{
+					if( !currLine.startsWith("#") )
+					{
+						throw new IOException("Wrong file format: First line doesn't start with #");
+						// first line contains the column order
+					}
+					
+					//attrInsertQuery = attrInsertQuery 
+					//				+ "( "+RegionMappingDataStorageDB.GUID_COL_NAME;
+					
+					// first column is guid and the attributes in order.
+					String[] parsed = currLine.split(",");
+					// ignoring fisr column, that should be guid
+					for(int i=1; i<parsed.length; i++)
+					{
+						String attrName = parsed[i].trim();
+						if(!AttributeTypes.attributeMap.containsKey(attrName))
+						{
+							throw new IOException("Attribute "+attrName
+													+" not recongnized by CNS");
+						}
+						attributeOrderList.add(attrName);
+						
+						//attrInsertQuery = attrInsertQuery + ","+attrName;
+					}
+					
+					//attrInsertQuery = attrInsertQuery + ") VALUES ";
+					attrInsertQuery = attrInsertQuery + " VALUES ";
+					
+					hashInsertQuery = hashInsertQuery + " VALUES ";
+					
+					firstline = false;
+				}
+				else
+				{
+					String[] tupleParsed = currLine.split(",");
+					String currTuple 
+							= getATupleForInsertQuery(tupleParsed, attributeOrderList, false);
+					
+					boolean mapsOnNode 
+							= checkIfTupleMapsToNode(tupleParsed, attributeOrderList);
+					
+					if( mapsOnNode )
+					{
+						if(attrfirsttuple)
+						{
+							attrInsertQuery = attrInsertQuery + currTuple;	
+							attrfirsttuple = false;
+						}
+						else
+						{
+							attrInsertQuery = attrInsertQuery + ","+currTuple;
+							attrfirsttuple = false;
+						}
+						attrnumLinesBatched++;
+						
+						
+						if( (attrnumLinesBatched % MAX_INSERT_BATCHING) == 0 )
+						{
+							attrInsertQuery = attrInsertQuery + ";";
+							bw.write(attrInsertQuery+"\n");
+							attrInsertQuery = "INSERT INTO `"+RegionMappingDataStorageDB.ATTR_INDEX_TABLE_NAME
+									+"` ";
+							
+							//attrInsertQuery = attrInsertQuery 
+							//		+ "( "+RegionMappingDataStorageDB.GUID_COL_NAME;
+							
+//							for(int i=0; i<attributeOrderList.size(); i++)
+//							{
+//								String attrName = attributeOrderList.get(i);
+//								//attrInsertQuery = attrInsertQuery + ","+attrName;
+//							}
+					
+							//attrInsertQuery = attrInsertQuery + ") VALUES ";
+							attrInsertQuery = attrInsertQuery + " VALUES ";
+							attrnumLinesBatched = 0;
+							attrfirsttuple = true;
+						}
+					}
+					
+					
+					currTuple = getATupleForInsertQuery(tupleParsed, attributeOrderList, true);
+					
+					
+					// tupleParsed[0] is guid
+					if(Utils.getConsistentHashingNodeID(tupleParsed[0], allNodeIDs) == myId)
+					{
+						if(hashfirsttuple)
+						{	
+							hashInsertQuery = hashInsertQuery + currTuple;
+							hashfirsttuple = false;
+						}
+						else
+						{	
+							hashInsertQuery = hashInsertQuery + ","+currTuple;
+							hashfirsttuple = false;
+						}
+						hashnumLinesBatched++;
+						
+						
+						if( (hashnumLinesBatched % MAX_INSERT_BATCHING) == 0 )
+						{
+							hashInsertQuery = hashInsertQuery + ";";
+							bw.write(hashInsertQuery+"\n");
+							hashInsertQuery = "INSERT INTO `"+RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME
+									+"` ";
+							
+							//hashInsertQuery = hashInsertQuery 
+							//		+ "( "+RegionMappingDataStorageDB.GUID_COL_NAME;
+							
+//							for(int i=0; i<attributeOrderList.size(); i++)
+//							{
+//								String attrName = attributeOrderList.get(i);
+//								//hashInsertQuery = hashInsertQuery + ","+attrName;
+//							}
+					
+							//hashInsertQuery = hashInsertQuery + ") VALUES ";
+							hashInsertQuery = hashInsertQuery + " VALUES ";
+							hashnumLinesBatched = 0;
+							hashfirsttuple = true;
+						}
+					}
+					
+				}
+			}
+			
+			// do the remaining
+			if(attrnumLinesBatched > 0)
+			{
+				attrInsertQuery = attrInsertQuery + ";";
+				bw.write(attrInsertQuery+"\n");
+			}
+			
+			// do the remaining
+			if(hashnumLinesBatched > 0)
+			{
+				hashInsertQuery = hashInsertQuery + ";";
+				bw.write(hashInsertQuery+"\n");
+			}
+			
+			
+			str = "/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;";
+			bw.write(str+"\n");
+			
+			str = "/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;";
+			bw.write(str+"\n");
+			
 		}
 		catch(IOException ex)
 		{
