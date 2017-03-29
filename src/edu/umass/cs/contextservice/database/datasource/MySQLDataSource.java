@@ -64,8 +64,12 @@ public class MySQLDataSource extends AbstractDataSource
         // actually default mysql server max connection is 151. So this should be
         // set in conjuction with that. and also the hyperpsace hashing thread pool
         // size should be set greater than that. These things affect system performance a lot.
+        cpds.setMinPoolSize(ContextServiceConfig.MYSQL_MAX_CONNECTIONS);
         cpds.setMaxPoolSize(ContextServiceConfig.MYSQL_MAX_CONNECTIONS);
+        cpds.setMaxIdleTime(0);
+        
         cpds.setAutoCommitOnClose(false);
+        
         //cpds.setMaxStatements(180);
         ContextServiceLogger.getLogger().fine("HyperspaceMySQLDB datasource "
         		+ "max pool size "+cpds.getMaxPoolSize());
