@@ -21,6 +21,10 @@ public class ProfilerStatClass implements Runnable
 	private long numSearchInAttrIndex				= 0;
 	private long numUpdateInAttrIndex				= 0;
 	
+	private long sumAttrIndexTime					= 0;
+	
+	private long sumRegionMapTime					= 0;
+	
 	private final Object lock 						= new Object();
 	
 	@Override
@@ -41,7 +45,11 @@ public class ProfilerStatClass implements Runnable
 			{	
 				System.out.println("numNodesForSearchQuery "
 						+ (numNodesForSearchQuery/numSearchReqs)
-						+ " numSearchReqs "+numSearchReqs );
+						+ " numSearchReqs "+numSearchReqs +" avgregionmaptime "
+						+ (sumRegionMapTime/numSearchReqs) 
+						+ " numSearchInAttrIndex "+numSearchInAttrIndex
+						+ " search index time "
+						+ (sumAttrIndexTime/numSearchInAttrIndex));
 			}
 			
 			if( (numUpdateReqs > 0) )
@@ -86,20 +94,24 @@ public class ProfilerStatClass implements Runnable
 		}
 	}
 	
-	public void incrementNumSearches(int currNumNodes)
+	public void incrementNumSearches(int currNumNodes, long regionMapTime)
 	{
 		synchronized(lock)
 		{
 			numNodesForSearchQuery = numNodesForSearchQuery + currNumNodes;
 			numSearchReqs++;
+			sumRegionMapTime = sumRegionMapTime +regionMapTime;
 		}
 	}
 	
-	public void incrementNumSearchesAttrIndex()
+	
+	
+	public void incrementNumSearchesAttrIndex(long time)
 	{
 		synchronized(lock)
 		{
 			this.numSearchInAttrIndex++;
+			sumAttrIndexTime = sumAttrIndexTime + time;
 		}
 	}
 	

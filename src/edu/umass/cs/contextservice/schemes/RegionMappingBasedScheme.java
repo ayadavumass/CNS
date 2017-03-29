@@ -17,7 +17,6 @@ import org.paukov.combinatorics.Generator;
 import org.paukov.combinatorics.ICombinatoricsVector;
 
 import edu.umass.cs.contextservice.attributeInfo.AttributeTypes;
-import edu.umass.cs.contextservice.bulkloading.BulkLoadDataInMySQLFromAFile;
 import edu.umass.cs.contextservice.bulkloading.BulkLoadDataInMySQLUsingDumpSyntax;
 import edu.umass.cs.contextservice.common.CSNodeConfig;
 import edu.umass.cs.contextservice.config.ContextServiceConfig;
@@ -45,7 +44,6 @@ import edu.umass.cs.contextservice.profilers.ProfilerStatClass;
 import edu.umass.cs.contextservice.queryparsing.QueryInfo;
 import edu.umass.cs.contextservice.regionmapper.AbstractRegionMappingPolicy;
 import edu.umass.cs.contextservice.regionmapper.FileBasedRegionMappingPolicy;
-import edu.umass.cs.contextservice.regionmapper.FileBasedRegionMappingPolicyWithDB;
 import edu.umass.cs.contextservice.regionmapper.HyperdexBasedRegionMappingPolicy;
 import edu.umass.cs.contextservice.regionmapper.SqrtNConsistentHashingPolicy;
 import edu.umass.cs.contextservice.regionmapper.UniformGreedyRegionMappingPolicyWithDB;
@@ -803,12 +801,7 @@ public class RegionMappingBasedScheme extends AbstractScheme
 	
 	private void processQueryMesgToSubspaceRegion(QueryMesgToSubspaceRegion 
 														queryMesgToSubspaceRegion)
-	{
-		if(ContextServiceConfig.PROFILER_THREAD)
-		{
-			profStats.incrementNumSearchesAttrIndex();;
-		}
-		
+	{	
 		String groupGUID 			 = queryMesgToSubspaceRegion.getGroupGUID();
 		boolean storeQueryForTrigger = queryMesgToSubspaceRegion.getStoreQueryForTrigger();
 		

@@ -74,16 +74,17 @@ public class GUIDAttrValueProcessing
 //		ValueSpaceInfo searchQValSpace = ValueSpaceInfo.getAllAttrsValueSpaceInfo
 //										(queryInfo.getSearchQueryAttrValMap(), 
 //												AttributeTypes.attributeMap);
-		
+		long start = System.currentTimeMillis();
 		List<Integer> nodeList 
 				= regionMappingPolicy.getNodeIDsForSearch
 					(queryInfo.getSearchQueryAttrValMap());
+		long end = System.currentTimeMillis();
+		
 		
 		if(ContextServiceConfig.PROFILER_THREAD)
 		{
-			profStats.incrementNumSearches(nodeList.size());
+			profStats.incrementNumSearches(nodeList.size(), (end-start));	
 		}
-		
 		
 		queryInfo.initializeSearchQueryReplyInfo(nodeList);
 		
@@ -125,8 +126,15 @@ public class GUIDAttrValueProcessing
 		// value, which is outside the Min max value corresponding to an attribute.
 		HashMap<String, AttributeValueRange> searchAttrValRange	 = QueryParser.parseQuery(query);
 		
+		long start = System.currentTimeMillis();
 		int resultSize = this.hyperspaceDB.processSearchQueryUsingAttrIndex
 				(searchAttrValRange, resultGUIDs);
+		long end = System.currentTimeMillis();
+		
+		if(ContextServiceConfig.PROFILER_THREAD)
+		{
+			profStats.incrementNumSearchesAttrIndex((end-start));	
+		}
 		
 		return resultSize;
 	}
