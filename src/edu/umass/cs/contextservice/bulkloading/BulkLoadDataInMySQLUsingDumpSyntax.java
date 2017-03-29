@@ -37,7 +37,7 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 {
 	//public static final String LATIN_ENCODING		= "ISO-8859-1";
 	// maximum inserts batched into one in the mysql dump file format
-	private static final int MAX_INSERT_BATCHING			= 15000;
+	private static final int MAX_INSERT_BATCHING			= 1000;
 	
 	private final int myId;
 	private final String allguidfilepath;
