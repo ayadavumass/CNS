@@ -204,7 +204,9 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 		int resultSize = 0;
 		try
 		{
+			long s = System.currentTimeMillis();
 			myConn = this.dataSource.getConnection(DB_REQUEST_TYPE.SELECT);
+			long e = System.currentTimeMillis();
 			// for row by row fetching, otherwise default is fetching whole result
 			// set in memory. 
 			// http://dev.mysql.com/doc/connector-j/en/connector-j-reference-implementation-notes.html
@@ -286,7 +288,8 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 			}
 			
 			System.out.println("MySQL query exec time "
-					+(System.currentTimeMillis()-start)+" query "+mysqlQuery );
+					+(System.currentTimeMillis()-start)+" query "+mysqlQuery 
+					+" conn acquire time "+(e-s));
 			
 			rs.close();
 			stmt.close();
