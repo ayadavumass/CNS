@@ -41,7 +41,7 @@ public class ProfilerStatClass implements Runnable
 				e.printStackTrace();
 			}
 			
-			if( (numSearchReqs > 0) )
+			if( (numSearchReqs > 0) && (numSearchInAttrIndex > 0))
 			{	
 				System.out.println("numNodesForSearchQuery "
 						+ (numNodesForSearchQuery/numSearchReqs)
