@@ -9,7 +9,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.HashMap;
 
-import org.apache.commons.dbcp2.BasicDataSource;
+import com.mchange.v2.c3p0.ComboPooledDataSource;
 
 import edu.umass.cs.contextservice.config.ContextServiceConfig;
 import edu.umass.cs.contextservice.logging.ContextServiceLogger;
@@ -18,12 +18,12 @@ public class MySQLDataSource extends AbstractDataSource
 {
 	private final HashMap<Integer, SQLNodeInfo> sqlNodeInfoMap;
 	
-    //private ComboPooledDataSource cpds;
-	private BasicDataSource dataSource;
+    private ComboPooledDataSource dataSource;
+	//private BasicDataSource dataSource;
     private final int myNodeId;
 
     // Commented to test which connection pool is better, apache dbcp or ComboPooledDataSource
-    /*public MySQLDataSource(Integer myNodeID) throws IOException, SQLException, PropertyVetoException 
+    public MySQLDataSource(Integer myNodeID) throws IOException, SQLException, PropertyVetoException 
     {
     	myNodeId = myNodeID;
     	this.sqlNodeInfoMap = new HashMap<Integer, SQLNodeInfo>();
@@ -39,20 +39,20 @@ public class MySQLDataSource extends AbstractDataSource
     	createDB(sqlNodeInfoMap.get(myNodeID));
     	
     	
-        cpds = new ComboPooledDataSource();
-        cpds.setDriverClass("com.mysql.jdbc.Driver"); //loads the jdbc driver
+    	dataSource = new ComboPooledDataSource();
+    	dataSource.setDriverClass("com.mysql.jdbc.Driver"); //loads the jdbc driver
         if(arguments.length() > 0)
         {
-        	cpds.setJdbcUrl("jdbc:mysql://localhost:"+portNum+"/"+dbName+"?"+arguments);
+        	dataSource.setJdbcUrl("jdbc:mysql://localhost:"+portNum+"/"+dbName+"?"+arguments);
         }
         else
         {
-        	cpds.setJdbcUrl("jdbc:mysql://localhost:"+portNum+"/"+dbName);
+        	dataSource.setJdbcUrl("jdbc:mysql://localhost:"+portNum+"/"+dbName);
         }
         
         
-        cpds.setUser(username);
-        cpds.setPassword(password);
+        dataSource.setUser(username);
+        dataSource.setPassword(password);
 
         //the settings below are optional -- c3p0 can work with defaults
         //cpds.setMinPoolSize(5);
@@ -66,21 +66,20 @@ public class MySQLDataSource extends AbstractDataSource
         // actually default mysql server max connection is 151. So this should be
         // set in conjuction with that. and also the hyperpsace hashing thread pool
         // size should be set greater than that. These things affect system performance a lot.
-        cpds.setMinPoolSize(ContextServiceConfig.MYSQL_MAX_CONNECTIONS);
-        cpds.setMaxPoolSize(ContextServiceConfig.MYSQL_MAX_CONNECTIONS);
-        System.out.println("Max idle time before "+cpds.getMaxIdleTime());
+        dataSource.setMinPoolSize(ContextServiceConfig.MYSQL_MAX_CONNECTIONS);
+        dataSource.setMaxPoolSize(ContextServiceConfig.MYSQL_MAX_CONNECTIONS);
+        System.out.println("Max idle time before "+dataSource.getMaxIdleTime());
         
-        cpds.setMaxIdleTime(0);
+        //dataSource.setMaxIdleTime(0);
         
-        cpds.setAutoCommitOnClose(false);
+        dataSource.setAutoCommitOnClose(false);
         
         //cpds.setMaxStatements(180);
         ContextServiceLogger.getLogger().fine("HyperspaceMySQLDB datasource "
-        		+ "max pool size "+cpds.getMaxPoolSize());
-    }*/
+        		+ "max pool size "+dataSource.getMaxPoolSize());
+    }
     
-    
-    public MySQLDataSource(Integer myNodeID) 
+    /*public MySQLDataSource(Integer myNodeID) 
     			throws IOException, SQLException, PropertyVetoException 
     {
     	myNodeId = myNodeID;
@@ -129,7 +128,7 @@ public class MySQLDataSource extends AbstractDataSource
         dataSource.setMaxIdle(ContextServiceConfig.MYSQL_MAX_CONNECTIONS);
         
         dataSource.setEnableAutoCommitOnReturn(false);
-    }
+    }*/
     
 
     public Connection getConnection(DB_REQUEST_TYPE dbReqType) throws SQLException 
