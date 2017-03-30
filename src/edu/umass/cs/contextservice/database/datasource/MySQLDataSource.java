@@ -35,7 +35,7 @@ public class MySQLDataSource extends AbstractDataSource
     	String password = sqlNodeInfoMap.get(myNodeID).password;
     	String arguments = sqlNodeInfoMap.get(myNodeID).arguments;
     	
-    	dropDB(sqlNodeInfoMap.get(myNodeID));
+    	//dropDB(sqlNodeInfoMap.get(myNodeID));
     	createDB(sqlNodeInfoMap.get(myNodeID));
     	
     	
@@ -215,7 +215,7 @@ public class MySQLDataSource extends AbstractDataSource
 
 		    stmt = conn.createStatement();
 		    
-		    String sql = "CREATE DATABASE "+sqlInfo.databaseName;
+		    String sql = "CREATE DATABASE IF NOT EXISTS "+sqlInfo.databaseName;
 		    stmt.executeUpdate(sql);
 		    
     	}
