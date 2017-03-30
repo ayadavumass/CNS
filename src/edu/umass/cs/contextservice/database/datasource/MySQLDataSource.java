@@ -35,8 +35,12 @@ public class MySQLDataSource extends AbstractDataSource
     	String password = sqlNodeInfoMap.get(myNodeID).password;
     	String arguments = sqlNodeInfoMap.get(myNodeID).arguments;
     	
-    	//dropDB(sqlNodeInfoMap.get(myNodeID));
-    	createDB(sqlNodeInfoMap.get(myNodeID));
+    	if(ContextServiceConfig.dropLocalDB)
+    	{
+    		dropLocalDB();
+    	}
+    	
+    	createLocalDB();
     	
     	
     	dataSource = new ComboPooledDataSource();
@@ -193,8 +197,9 @@ public class MySQLDataSource extends AbstractDataSource
 		reader.close();
 	}
 	
-	private void createDB(SQLNodeInfo sqlInfo)
+	private void createLocalDB()
     {
+		SQLNodeInfo sqlInfo = sqlNodeInfoMap.get(myNodeId);
     	Connection conn = null;
     	Statement stmt = null;
     	try
@@ -249,10 +254,11 @@ public class MySQLDataSource extends AbstractDataSource
     	    }
     	}
     }
+	
     
-    
-    private void dropDB(SQLNodeInfo sqlInfo)
+    public void dropLocalDB()
     {
+    	SQLNodeInfo sqlInfo = sqlNodeInfoMap.get(myNodeId);
     	Connection conn = null;
     	Statement stmt = null;
     	try

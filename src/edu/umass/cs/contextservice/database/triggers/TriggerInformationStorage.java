@@ -61,7 +61,7 @@ public class TriggerInformationStorage implements
 			
 			String tableName = RegionMappingDataStorageDB.ATTR_INDEX_TRIGGER_TABLE_NAME;
 			
-			String newTableCommand = "create table "+tableName+" ( groupGUID BINARY(20) NOT NULL , "
+			String newTableCommand = "create table IF NOT EXISTS "+tableName+" ( groupGUID BINARY(20) NOT NULL , "
 					+ "userIP Binary(4) NOT NULL ,  userPort INTEGER NOT NULL , expiryTime BIGINT NOT NULL ";
 			newTableCommand = getPartitionInfoStorageString(newTableCommand);
 			
@@ -107,7 +107,7 @@ public class TriggerInformationStorage implements
 				
 				tableName = RegionMappingDataStorageDB.HASH_INDEX_TRIGGER_TABLE_NAME;
 				
-				newTableCommand = "create table "+tableName+" ( groupGUID BINARY(20) NOT NULL , "
+				newTableCommand = "create table IF NOT EXISTS "+tableName+" ( groupGUID BINARY(20) NOT NULL , "
 						+ "userIP Binary(4) NOT NULL ,  userPort INTEGER NOT NULL ";
 				
 				newTableCommand = newTableCommand +" , PRIMARY KEY(groupGUID, userIP, userPort) )";

@@ -207,4 +207,8 @@ public class ContextServiceConfig
 	
 	public static boolean enableBulkLoading							= false;
 	public static String bulkLoadingFilePath						= "";
+	
+	// only set to true in running tests.
+	// otherwise db should be dropped manually external to CNS
+	public static boolean dropLocalDB								= false;
 }

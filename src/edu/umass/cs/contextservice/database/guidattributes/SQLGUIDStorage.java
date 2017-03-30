@@ -91,7 +91,7 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 	{
 		String tableName = RegionMappingDataStorageDB.ATTR_INDEX_TABLE_NAME;
 		
-		String newTableCommand = "create table "+tableName+" ( "
+		String newTableCommand = "create table IF NOT EXISTS "+tableName+" ( "
 			      + " nodeGUID Binary(20) PRIMARY KEY";
 		
 		newTableCommand = getDataStorageString(newTableCommand);
@@ -138,7 +138,7 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 	public String getHashIndexTableCreationCmd()
 	{
 		String tableName = RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME;
-		String newTableCommand = "create table "+tableName+" ( "
+		String newTableCommand = "create table IF NOT EXISTS "+tableName+" ( "
 			      + " nodeGUID Binary(20) PRIMARY KEY";
 		
 		newTableCommand = getDataStorageString(newTableCommand);
