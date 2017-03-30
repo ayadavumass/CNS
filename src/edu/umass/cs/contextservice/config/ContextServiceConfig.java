@@ -7,16 +7,16 @@ package edu.umass.cs.contextservice.config;
 public class ContextServiceConfig
 {
 	// properties name, these are read from properties file
-	public static final String triggerEnableString					= "triggerEnable";
+	public static final String TRIGGER_ENABLE_STRING				= "triggerEnable";
 	
-	public static final String regionMappingPolicyString			= "regionMappingPolicy";
-	public static final String numAttrsPerSubspaceString			= "numAttrsPerSubspace";
-	public static final String privacyEnabledString					= "privacyEnabled";
-	public static final String queryAllEnabledString				= "queryAllEnabled";
-	public static final String sqlPoolSizeString					= "sqlPoolSize";
-	public static final String threadPoolSizeString					= "threadPoolSize";
-	public static final String bulkLoadingEnableString				= "enableBulkLoading";
-	public static final String bulkLoadingFileString				= "bulkLoadingFile";
+	public static final String REGION_MAPPING_POLICY_STRING			= "regionMappingPolicy";
+	public static final String NUM_ATTRS_PER_SUBSPACE_STRING		= "numAttrsPerSubspace";
+	public static final String PRIVACY_ENABLED_STRING				= "privacyEnabled";
+	public static final String QUERY_ALL_ENABLED_STRING				= "queryAllEnabled";
+	public static final String SQL_POOL_SIZE_STRING					= "sqlPoolSize";
+	public static final String THREAD_POOL_SIZE_STRING				= "threadPoolSize";
+	public static final String BULK_LOADING_ENABLE_STRING			= "enableBulkLoading";
+	public static final String BULK_LOADING_FILE_STRING				= "bulkLoadingFile";
 	
 	// region Mapping policies
 	public static final String DEMAND_AWARE							= "DEMAND_AWARE";
@@ -60,25 +60,25 @@ public class ContextServiceConfig
 	// default mysql select semantics is used which fetches all
 	// results in memory on a select, but on large result sizes can cause
 	// memory overflow.
-	public static final boolean rowByRowFetchingEnabled				= false;
+	public static final boolean ROW_BY_ROW_FETCHING_ENABLED			= true;
 	
 	
 	// fetches only count of the result, select query is count(GUID)
 	// used for debugging and also for results until we increse mysql default 
 	// buffers.
-	public static final boolean onlyResultCountEnable				= false;
+	public static final boolean ONLY_RESULT_COUNT_ENABLE			= false;
 	
 	//if false, replies for any update messages will not be sent
 	// just for measuring update throughout and time in experiments
 	//public static final boolean sendUpdateReplies					= true;
 	
 	// if true group update trigger is enabled, not enabled if false
-	public static boolean TRIGGER_ENABLED							= false;
+	public static boolean triggerEnabled							= false;
 	
 	
 	// if set to true then there is a primary node for each groupGUID
 	// and search always gores through that and doesn't update trigger info if its is repeated.
-	public static boolean UniqueGroupGUIDEnabled					= false;
+	public static boolean uniqueGroupGUIDEnabled					= false;
 	// GroupGUID, UserIP and UserPort are primaries keys if this option is set false.
 	// if set true then those are just hash index.
 	public static boolean disableUniqueQueryStorage					= true;
@@ -99,13 +99,10 @@ public class ContextServiceConfig
     // set in conjuction with that. and also the hyperpsace hashing thread pool
     // size should be set greater than that. These things affect system performance a lot.
 	// change back to 214 for experiments.
-	public static  int MYSQL_MAX_CONNECTIONS						= 10;
+	public static  int mysqlMaxConnections							= 10;
 	
 	// it is also important to set this at least the size of the database connection pool.
-	public static int THREAD_POOL_SIZE								= 10;
-	
-	//public static final int PRIVACY_THREAD_POOL_SIZE				= 214;
-	//public static final int HYPERSPACEDB_THREAD_POOL_SIZE			= 214;
+	public static int threadPoolSize								= 10;
 	
 	// mysql result cursor fetches 1 guid at once and stores in memory
 	// need this becuase otherwise in large guids case , all the result 
@@ -119,25 +116,25 @@ public class ContextServiceConfig
 	public static final int MAXIMUM_NUM_ATTRS_IN_SUBSPACE			= 10;
 	
 	
-	public static boolean PRIVACY_ENABLED							= false;
+	public static boolean privacyEnabled							= false;
 	
 	
 	
-	public static boolean QUERY_ALL_ENABLED							= false;
+	public static boolean queryAllEnabled							= false;
 	
 	public static String regionMappingPolicy						= UNIFORM;
 	
 	
 	// if this is set to true then the context service client will do decryptions 
 	// on receiving the search reply.
-	public static boolean DECRYPTIONS_ON_SEARCH_REPLY_ENABLED		= true;
+	public static final boolean DECRYPTIONS_ON_SEARCH_REPLY_ENABLED	= true;
 	
 	// if true, no encryption happens. cipher text and plain text are same.
-	public static boolean NO_ENCRYPTION								= false;
+	public static final boolean NO_ENCRYPTION						= false;
 	
 	// if set to true then anonymized IDs will have random attr-val pairs.
 	// only for testing.
-	public static boolean RAND_VAL_JSON								= false;
+	public static final boolean RAND_VAL_JSON						= false;
 	
 	
 	// 20 bytes
@@ -147,8 +144,8 @@ public class ContextServiceConfig
 	public static PrivacySchemes privacyScheme						= PrivacySchemes.NO_PRIVACY;
 	
 	
-	public static final String AssymmetricEncAlgorithm				= "RSA";
-	public static final String SymmetricEncAlgorithm				= "DES";
+	public static final String ASSYMETRIC_ENC_ALGORITHM				= "RSA";
+	public static final String SYMMETRIC_ENC_ALGORITHM				= "DES";
 	public static final String STRING_ENCODING						= "UTF-8";
 	
 	// if true some debugging information will be computed and printed.
@@ -179,12 +176,12 @@ public class ContextServiceConfig
 	
 	// if set to true then all mysql tables are created in in-memory.
 	// used when virtualized nodes are used.
-	public static boolean IN_MEMORY_MYSQL							= false;
+	public static boolean inMemoryMySQL								= false;
 	
 	
 	// if true then mysql NULL is stored for unspecified
 	// attributes to save space.
-	public static boolean NULL_DEFAULT_ENABLED						= true;
+	public static final boolean NULL_DEFAULT_ENABLED				= true;
 	
 	// SQL database types
 	public static enum SQL_DB_TYPE	{MYSQL, SQLITE};

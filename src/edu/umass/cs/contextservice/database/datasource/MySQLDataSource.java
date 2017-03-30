@@ -66,8 +66,8 @@ public class MySQLDataSource extends AbstractDataSource
         // actually default mysql server max connection is 151. So this should be
         // set in conjuction with that. and also the hyperpsace hashing thread pool
         // size should be set greater than that. These things affect system performance a lot.
-        dataSource.setMinPoolSize(ContextServiceConfig.MYSQL_MAX_CONNECTIONS);
-        dataSource.setMaxPoolSize(ContextServiceConfig.MYSQL_MAX_CONNECTIONS);
+        dataSource.setMinPoolSize(ContextServiceConfig.mysqlMaxConnections);
+        dataSource.setMaxPoolSize(ContextServiceConfig.mysqlMaxConnections);
         System.out.println("Max idle time before "+dataSource.getMaxIdleTime());
         
         //dataSource.setMaxIdleTime(0);

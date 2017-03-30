@@ -27,7 +27,7 @@ public class EncryptionBasedGNSPrivacyTransform implements GNSPrivacyTransformIn
 	
 	public EncryptionBasedGNSPrivacyTransform() throws NoSuchAlgorithmException
 	{
-		keyGen = KeyGenerator.getInstance(ContextServiceConfig.SymmetricEncAlgorithm);
+		keyGen = KeyGenerator.getInstance(ContextServiceConfig.SYMMETRIC_ENC_ALGORITHM);
 	}
 	
 	@Override

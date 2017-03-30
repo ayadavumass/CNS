@@ -86,7 +86,7 @@ public class TriggerInformationStorage implements
 			}
 			
 			if( (ContextServiceConfig.sqlDBType == SQL_DB_TYPE.MYSQL) 
-					&& (ContextServiceConfig.IN_MEMORY_MYSQL) )
+					&& (ContextServiceConfig.inMemoryMySQL) )
 			{
 				newTableCommand = newTableCommand +" ENGINE = MEMORY";
 			}
@@ -94,8 +94,8 @@ public class TriggerInformationStorage implements
 			stmt.executeUpdate(newTableCommand);
 			
 			
-			if( ContextServiceConfig.TRIGGER_ENABLED 
-								&& ContextServiceConfig.UniqueGroupGUIDEnabled )
+			if( ContextServiceConfig.triggerEnabled 
+								&& ContextServiceConfig.uniqueGroupGUIDEnabled )
 			{
 				// currently it is assumed that there are only conjunctive queries
 				// DNF form queries can be added by inserting its multiple conjunctive components.
@@ -113,7 +113,7 @@ public class TriggerInformationStorage implements
 				newTableCommand = newTableCommand +" , PRIMARY KEY(groupGUID, userIP, userPort) )";
 				
 				if( (ContextServiceConfig.sqlDBType == SQL_DB_TYPE.MYSQL) 
-						&& (ContextServiceConfig.IN_MEMORY_MYSQL) )
+						&& (ContextServiceConfig.inMemoryMySQL) )
 				{
 					newTableCommand = newTableCommand +" ENGINE = MEMORY";
 				}

@@ -101,7 +101,7 @@ public class RegionMappingBasedScheme extends AbstractScheme
 		}
 		
 		nodeES = Executors.newFixedThreadPool(
-				ContextServiceConfig.THREAD_POOL_SIZE);
+				ContextServiceConfig.threadPoolSize);
 		
 		guidUpdateInfoMap = new HashMap<String, GUIDUpdateInfo>();
 		
@@ -149,9 +149,9 @@ public class RegionMappingBasedScheme extends AbstractScheme
 				hyperspaceDB, messenger , pendingQueryRequests , profStats);
 		
 		
-		if( ContextServiceConfig.TRIGGER_ENABLED )
+		if( ContextServiceConfig.triggerEnabled )
 		{
-			if(ContextServiceConfig.UniqueGroupGUIDEnabled)
+			if(ContextServiceConfig.uniqueGroupGUIDEnabled)
 			{
 				groupGUIDSyncMap = new HashMap<String, Boolean>();
 			}
@@ -342,8 +342,8 @@ public class RegionMappingBasedScheme extends AbstractScheme
 		String hashKey = grpGUID+":"+userIP+":"+userPort;
 		// check for triggers, if those are enabled then forward the query to the node
 		// which consistently hashes the the query:userIp:userPort string
-		if( ContextServiceConfig.TRIGGER_ENABLED 
-				&& ContextServiceConfig.UniqueGroupGUIDEnabled )
+		if( ContextServiceConfig.triggerEnabled 
+				&& ContextServiceConfig.uniqueGroupGUIDEnabled )
 		{
 			
 			Integer respNodeId = Utils.getConsistentHashingNodeID(hashKey, this.allNodeIDs);
@@ -372,8 +372,8 @@ public class RegionMappingBasedScheme extends AbstractScheme
 					userIP, userPort, expiryTime );
 		
 		
-		if( ContextServiceConfig.TRIGGER_ENABLED && 
-					ContextServiceConfig.UniqueGroupGUIDEnabled )
+		if( ContextServiceConfig.triggerEnabled && 
+					ContextServiceConfig.uniqueGroupGUIDEnabled )
 	    {
 			synchronized(this.groupGUIDSyncMap)
 			{
@@ -401,7 +401,7 @@ public class RegionMappingBasedScheme extends AbstractScheme
 	    	storeQueryForTrigger = !found;
 	    	
 	    }
-		else if( ContextServiceConfig.TRIGGER_ENABLED )
+		else if( ContextServiceConfig.triggerEnabled )
 		{
 			storeQueryForTrigger = true;
 		}
@@ -658,7 +658,7 @@ public class RegionMappingBasedScheme extends AbstractScheme
 				e.printStackTrace();
 			}
 			
-			if(ContextServiceConfig.TRIGGER_ENABLED)
+			if(ContextServiceConfig.triggerEnabled)
 			{
 				try
 				{
@@ -816,7 +816,7 @@ public class RegionMappingBasedScheme extends AbstractScheme
 		
 		if(storeQueryForTrigger)
 		{
-			assert(ContextServiceConfig.TRIGGER_ENABLED);
+			assert(ContextServiceConfig.triggerEnabled);
 			this.triggerProcessing.processQuerySubspaceRegionMessageForTrigger
 					(queryMesgToSubspaceRegion);	
 		}
@@ -864,7 +864,7 @@ public class RegionMappingBasedScheme extends AbstractScheme
 		JSONArray toBeRemovedGroups = new JSONArray();
 		JSONArray toBeAddedGroups = new JSONArray();
 		
-		if( ContextServiceConfig.TRIGGER_ENABLED )
+		if( ContextServiceConfig.triggerEnabled )
 		{
 			// sending triggers right here.
 			try

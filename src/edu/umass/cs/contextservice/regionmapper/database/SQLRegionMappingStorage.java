@@ -75,7 +75,7 @@ public class SQLRegionMappingStorage extends AbstractRegionMappingStorage
 			newTableCommand = newTableCommand +" )";
 			
 			if( (ContextServiceConfig.sqlDBType == SQL_DB_TYPE.MYSQL) 
-					&& (ContextServiceConfig.IN_MEMORY_MYSQL) )
+					&& (ContextServiceConfig.inMemoryMySQL) )
 			{
 				newTableCommand = newTableCommand +" ENGINE = MEMORY";
 			}

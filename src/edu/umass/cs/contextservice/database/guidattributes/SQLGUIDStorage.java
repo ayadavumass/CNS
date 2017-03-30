@@ -96,7 +96,7 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 		
 		newTableCommand = getDataStorageString(newTableCommand);
 		
-		if(ContextServiceConfig.PRIVACY_ENABLED)
+		if(ContextServiceConfig.privacyEnabled)
 		{
 			newTableCommand = getPrivacyStorageString(newTableCommand);
 			// row format dynamic because we want TEXT columns to be stored completely off the row, 
@@ -110,7 +110,7 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 			}
 			else
 			{
-				if(!ContextServiceConfig.IN_MEMORY_MYSQL)
+				if(!ContextServiceConfig.inMemoryMySQL)
 				{
 					newTableCommand = newTableCommand +" ) ROW_FORMAT=DYNAMIC DEFAULT CHARSET=latin1";
 				}
@@ -126,7 +126,7 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 		}
 		
 		if( (ContextServiceConfig.sqlDBType == SQL_DB_TYPE.MYSQL) 
-								&& (ContextServiceConfig.IN_MEMORY_MYSQL) )
+								&& (ContextServiceConfig.inMemoryMySQL) )
 		{
 			newTableCommand = newTableCommand +" ENGINE = MEMORY";
 		}
@@ -152,7 +152,7 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 					+emptyJSON.toString()+"'";
 		
 		
-		if( ContextServiceConfig.PRIVACY_ENABLED )
+		if( ContextServiceConfig.privacyEnabled )
 		{
 			newTableCommand = getPrivacyStorageString(newTableCommand);
 			//newTableCommand	= getPrivacyStorageString(newTableCommand);
@@ -166,7 +166,7 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 			}
 			else
 			{
-				if(!ContextServiceConfig.IN_MEMORY_MYSQL)
+				if(!ContextServiceConfig.inMemoryMySQL)
 				{
 					newTableCommand = newTableCommand +" ) ROW_FORMAT=DYNAMIC DEFAULT CHARSET=latin1";
 				}
@@ -182,7 +182,7 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 		}
 		
 		if( (ContextServiceConfig.sqlDBType == SQL_DB_TYPE.MYSQL) 
-				&& (ContextServiceConfig.IN_MEMORY_MYSQL) )
+				&& (ContextServiceConfig.inMemoryMySQL) )
 		{
 			newTableCommand = newTableCommand +" ENGINE = MEMORY";
 		}
@@ -210,7 +210,7 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 			// for row by row fetching, otherwise default is fetching whole result
 			// set in memory. 
 			// http://dev.mysql.com/doc/connector-j/en/connector-j-reference-implementation-notes.html
-			if( ContextServiceConfig.rowByRowFetchingEnabled )
+			if( ContextServiceConfig.ROW_BY_ROW_FETCHING_ENABLED )
 			{
 				stmt   = myConn.createStatement(java.sql.ResultSet.TYPE_FORWARD_ONLY, 
 					java.sql.ResultSet.CONCUR_READ_ONLY);
@@ -240,7 +240,7 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 					
 					//String anonymizedIDToGUIDMapping = null;
 					JSONArray anonymizedIDToGuidArray = null;
-					if( ContextServiceConfig.PRIVACY_ENABLED )
+					if( ContextServiceConfig.privacyEnabled )
 					{
 						byte[] anonymizedIDToGUIDMappingBA 
 							= rs.getBytes(RegionMappingDataStorageDB.anonymizedIDToGUIDMappingColName);
@@ -276,7 +276,7 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 				}
 				else
 				{
-					if(ContextServiceConfig.onlyResultCountEnable)
+					if(ContextServiceConfig.ONLY_RESULT_COUNT_ENABLE)
 					{
 						resultSize = rs.getInt("RESULT_SIZE");
 					}
@@ -551,14 +551,14 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 		
 		// if privacy is enabled then we also fetch 
 		// anonymizedIDToGuidMapping set.
-		if(ContextServiceConfig.PRIVACY_ENABLED)
+		if(ContextServiceConfig.privacyEnabled)
 		{
 			mysqlQuery = "SELECT nodeGUID , "+RegionMappingDataStorageDB.anonymizedIDToGUIDMappingColName
 					+" from "+tableName+" WHERE ( ";
 		}
 		else
 		{
-			if(ContextServiceConfig.onlyResultCountEnable)
+			if(ContextServiceConfig.ONLY_RESULT_COUNT_ENABLE)
 			{
 				mysqlQuery = "SELECT COUNT(nodeGUID) AS RESULT_SIZE from "+tableName+" WHERE ( ";
 			}
@@ -1221,7 +1221,7 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 	
 	private String getPrivacyStorageString( String newTableCommand )
 	{
-		if(!ContextServiceConfig.IN_MEMORY_MYSQL)
+		if(!ContextServiceConfig.inMemoryMySQL)
 		{
 			newTableCommand 
 				= newTableCommand + " , "+RegionMappingDataStorageDB.anonymizedIDToGUIDMappingColName

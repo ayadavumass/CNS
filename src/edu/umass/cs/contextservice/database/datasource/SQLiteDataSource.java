@@ -21,7 +21,7 @@ public class SQLiteDataSource extends AbstractDataSource
     	searchPool.setJdbcUrl("jdbc:sqlite:file:contextdb"+myNodeID+"?mode=memory");
     	
 
-    	searchPool.setMaxPoolSize(ContextServiceConfig.MYSQL_MAX_CONNECTIONS);
+    	searchPool.setMaxPoolSize(ContextServiceConfig.mysqlMaxConnections);
     	searchPool.setAutoCommitOnClose(true);
 //    	Connection conn;
 //		

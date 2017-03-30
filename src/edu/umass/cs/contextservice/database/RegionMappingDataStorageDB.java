@@ -70,13 +70,13 @@ public class RegionMappingDataStorageDB extends AbstractDataStorageDB
 		guidAttributesStorage = new SQLGUIDStorage
 							(myNodeID, abstractDataSource);
 		
-		if( ContextServiceConfig.TRIGGER_ENABLED )
+		if( ContextServiceConfig.triggerEnabled )
 		{
 			// Currently it is assumed that there are only conjunctive queries
 			// DNF form queries can be added by inserting its multiple conjunctive 
 			// components.
 			ContextServiceLogger.getLogger().fine( "HyperspaceMySQLDB "
-					+ " TRIGGER_ENABLED "+ContextServiceConfig.TRIGGER_ENABLED );
+					+ " TRIGGER_ENABLED "+ContextServiceConfig.triggerEnabled );
 			triggerInformationStorage = new TriggerInformationStorage
 											(myNodeID , abstractDataSource);
 		}
@@ -103,7 +103,7 @@ public class RegionMappingDataStorageDB extends AbstractDataStorageDB
 		// so not a bottleneck.
 		guidAttributesStorage.createDataStorageTables();
 		
-		if( ContextServiceConfig.TRIGGER_ENABLED )
+		if( ContextServiceConfig.triggerEnabled )
 		{
 			// currently it is assumed that there are only conjunctive queries
 			// DNF form queries can be added by inserting its multiple conjunctive components.			

@@ -59,49 +59,49 @@ public class CSConfigFileLoader
 	  InputStream input = new FileInputStream(filename);
 	  properties.load(input);
     
-	  ContextServiceConfig.TRIGGER_ENABLED = Boolean.parseBoolean(
-    		properties.getProperty(ContextServiceConfig.triggerEnableString, 
-    				ContextServiceConfig.TRIGGER_ENABLED+"") );
+	  ContextServiceConfig.triggerEnabled = Boolean.parseBoolean(
+    		properties.getProperty(ContextServiceConfig.TRIGGER_ENABLE_STRING, 
+    				ContextServiceConfig.triggerEnabled+"") );
 	  
 	  ContextServiceConfig.numAttrsPerSubspace = Double.parseDouble(
-			  properties.getProperty(ContextServiceConfig.numAttrsPerSubspaceString, 
+			  properties.getProperty(ContextServiceConfig.NUM_ATTRS_PER_SUBSPACE_STRING, 
 					  ContextServiceConfig.numAttrsPerSubspace+"") );
 	  
 	  
-	  ContextServiceConfig.PRIVACY_ENABLED = Boolean.parseBoolean(
-	    		properties.getProperty(ContextServiceConfig.privacyEnabledString, 
-	    				ContextServiceConfig.PRIVACY_ENABLED+"") );
+	  ContextServiceConfig.privacyEnabled = Boolean.parseBoolean(
+	    		properties.getProperty(ContextServiceConfig.PRIVACY_ENABLED_STRING, 
+	    				ContextServiceConfig.privacyEnabled+"") );
 	  
-	  ContextServiceConfig.QUERY_ALL_ENABLED = Boolean.parseBoolean(
-	    		properties.getProperty(ContextServiceConfig.queryAllEnabledString, 
-	    				ContextServiceConfig.QUERY_ALL_ENABLED+"") );
+	  ContextServiceConfig.queryAllEnabled = Boolean.parseBoolean(
+	    		properties.getProperty(ContextServiceConfig.QUERY_ALL_ENABLED_STRING, 
+	    				ContextServiceConfig.queryAllEnabled+"") );
 	  
-	  ContextServiceConfig.MYSQL_MAX_CONNECTIONS = Integer.parseInt(
-	    		properties.getProperty(ContextServiceConfig.sqlPoolSizeString, 
+	  ContextServiceConfig.mysqlMaxConnections = Integer.parseInt(
+	    		properties.getProperty(ContextServiceConfig.SQL_POOL_SIZE_STRING, 
 	    				10+"") )  ;
 	  
-	  ContextServiceConfig.THREAD_POOL_SIZE = Integer.parseInt(
-	    		properties.getProperty(ContextServiceConfig.threadPoolSizeString, 
+	  ContextServiceConfig.threadPoolSize = Integer.parseInt(
+	    		properties.getProperty(ContextServiceConfig.THREAD_POOL_SIZE_STRING, 
 	    				10+"") )  ;
 	  
 	  ContextServiceConfig.regionMappingPolicy = properties.getProperty
-			  	(ContextServiceConfig.regionMappingPolicyString, 
+			  	(ContextServiceConfig.REGION_MAPPING_POLICY_STRING, 
 			  			ContextServiceConfig.regionMappingPolicy);
 	  
 	  ContextServiceConfig.enableBulkLoading = Boolean.parseBoolean(
-	    		properties.getProperty(ContextServiceConfig.bulkLoadingEnableString, 
+	    		properties.getProperty(ContextServiceConfig.BULK_LOADING_ENABLE_STRING, 
 	    				ContextServiceConfig.enableBulkLoading+"") );
 	  
 	  ContextServiceConfig.bulkLoadingFilePath = properties.getProperty
-			  	(ContextServiceConfig.bulkLoadingFileString, 
+			  	(ContextServiceConfig.BULK_LOADING_FILE_STRING, 
 			  			ContextServiceConfig.bulkLoadingFilePath);
 	  
 	  
-	  System.out.println(" ContextServiceConfig.TRIGGER_ENABLED "+ContextServiceConfig.TRIGGER_ENABLED
+	  System.out.println(" ContextServiceConfig.TRIGGER_ENABLED "+ContextServiceConfig.triggerEnabled
     		+" ContextServiceConfig.numAttrsPerSubspace "+ContextServiceConfig.numAttrsPerSubspace 
-    		+" ContextServiceConfig.PRIVACY_ENABLED "+ContextServiceConfig.PRIVACY_ENABLED
-    		+" ContextServiceConfig.MYSQL_MAX_CONNECTIONS "+ContextServiceConfig.MYSQL_MAX_CONNECTIONS 
-    		+" ContextServiceConfig.THREAD_POOL_SIZE "+ContextServiceConfig.THREAD_POOL_SIZE
+    		+" ContextServiceConfig.PRIVACY_ENABLED "+ContextServiceConfig.privacyEnabled
+    		+" ContextServiceConfig.MYSQL_MAX_CONNECTIONS "+ContextServiceConfig.mysqlMaxConnections 
+    		+" ContextServiceConfig.THREAD_POOL_SIZE "+ContextServiceConfig.threadPoolSize
     		+" ContextServiceConfig.regionMappingPolicy "+ContextServiceConfig.regionMappingPolicy
     		+" ContextServiceConfig.enableBulkLoading "+ContextServiceConfig.enableBulkLoading
     		+" ContextServiceConfig.bulkLoadingFilePath "+ContextServiceConfig.bulkLoadingFilePath);

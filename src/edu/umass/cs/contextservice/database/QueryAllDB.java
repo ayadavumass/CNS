@@ -165,7 +165,7 @@ public class QueryAllDB
 			// for row by row fetching, otherwise default is fetching whole result
 			// set in memory. 
 			// http://dev.mysql.com/doc/connector-j/en/connector-j-reference-implementation-notes.html
-			if( ContextServiceConfig.rowByRowFetchingEnabled )
+			if( ContextServiceConfig.ROW_BY_ROW_FETCHING_ENABLED )
 			{
 				stmt   = myConn.createStatement(java.sql.ResultSet.TYPE_FORWARD_ONLY, 
 					java.sql.ResultSet.CONCUR_READ_ONLY);
@@ -197,10 +197,11 @@ public class QueryAllDB
 					
 					String anonymizedIDToGUIDMapping = null;
 					JSONArray anonymizedIDToGuidArray = null;
-					if( ContextServiceConfig.PRIVACY_ENABLED )
+					if( ContextServiceConfig.privacyEnabled )
 					{
 						anonymizedIDToGUIDMapping 
-							= rs.getString(RegionMappingDataStorageDB.anonymizedIDToGUIDMappingColName);
+							= rs.getString(
+								RegionMappingDataStorageDB.anonymizedIDToGUIDMappingColName);
 						
 						if(anonymizedIDToGUIDMapping != null)
 						{
@@ -250,7 +251,7 @@ public class QueryAllDB
 				}
 				else
 				{
-					if(ContextServiceConfig.onlyResultCountEnable)
+					if(ContextServiceConfig.ONLY_RESULT_COUNT_ENABLE)
 					{
 						resultSize = rs.getInt("RESULT_SIZE");
 					}
@@ -306,7 +307,7 @@ public class QueryAllDB
 		
 		// if privacy is enabled then we also fetch 
 		// anonymizedIDToGuidMapping set.
-		if(ContextServiceConfig.PRIVACY_ENABLED)
+		if(ContextServiceConfig.privacyEnabled)
 		{
 			mysqlQuery = "SELECT nodeGUID , "
 						+RegionMappingDataStorageDB.anonymizedIDToGUIDMappingColName
@@ -314,7 +315,7 @@ public class QueryAllDB
 		}
 		else
 		{
-			if(ContextServiceConfig.onlyResultCountEnable)
+			if(ContextServiceConfig.ONLY_RESULT_COUNT_ENABLE)
 			{
 				mysqlQuery = "SELECT COUNT(nodeGUID) AS RESULT_SIZE from "
 								+tableName+" WHERE ( ";

@@ -82,7 +82,7 @@ public class TriggerProcessing implements
 		int userPort        = queryMesgToSubspaceRegion.getUserPort();
 		long expiryTime		= queryMesgToSubspaceRegion.getExpiryTime();
 		
-		if( ContextServiceConfig.TRIGGER_ENABLED )
+		if( ContextServiceConfig.triggerEnabled )
 		{
 			long expiryTimeFromNow = System.currentTimeMillis() + expiryTime;
 			this.regionMappingDataStorageDB.insertIntoTriggerDataStorage( 

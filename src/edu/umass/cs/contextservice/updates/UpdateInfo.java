@@ -57,7 +57,7 @@ public class UpdateInfo
 		
 		//initializeRepliesMap( valUpdMsgFromGNS );
 		
-		if( ContextServiceConfig.TRIGGER_ENABLED )
+		if( ContextServiceConfig.triggerEnabled )
 		{
 			toBeRemovedMap = new HashMap<String, GroupGUIDInfoClass>();
 			toBeAddedMap = new HashMap<String, GroupGUIDInfoClass>();
@@ -91,7 +91,7 @@ public class UpdateInfo
 		
 		synchronized( this.repliesLock )
 		{
-			if( ContextServiceConfig.TRIGGER_ENABLED )
+			if( ContextServiceConfig.triggerEnabled )
 			{
 				for( int i=0; i<toBeRemovedGroups.length(); i++ )
 				{
