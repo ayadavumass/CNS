@@ -16,6 +16,7 @@ import edu.umass.cs.contextservice.database.triggers.GroupGUIDInfoClass;
 import edu.umass.cs.contextservice.database.triggers.TriggerInformationStorage;
 import edu.umass.cs.contextservice.database.triggers.TriggerInformationStorageInterface;
 import edu.umass.cs.contextservice.logging.ContextServiceLogger;
+import edu.umass.cs.contextservice.profilers.CNSProfiler;
 import edu.umass.cs.contextservice.regionmapper.helper.AttributeValueRange;
 
 
@@ -62,13 +63,16 @@ public class RegionMappingDataStorageDB extends AbstractDataStorageDB
 	private final GUIDStorageInterface guidAttributesStorage;
 	private  TriggerInformationStorageInterface triggerInformationStorage;
 	
-	//private final Random randomGen;
+	private final CNSProfiler cnsprofiler;
 	
-	public RegionMappingDataStorageDB( Integer myNodeID, AbstractDataSource abstractDataSource )
+	public RegionMappingDataStorageDB( Integer myNodeID, 
+			AbstractDataSource abstractDataSource, CNSProfiler cnsProfiler)
 			throws Exception
 	{	
+		this.cnsprofiler = cnsProfiler;
+		
 		guidAttributesStorage = new SQLGUIDStorage
-							(myNodeID, abstractDataSource);
+							(myNodeID, abstractDataSource, cnsprofiler );
 		
 		if( ContextServiceConfig.triggerEnabled )
 		{
@@ -110,20 +114,6 @@ public class RegionMappingDataStorageDB extends AbstractDataStorageDB
 			triggerInformationStorage.createTriggerStorageTables();
 		}
 	}
-	
-	/**
-	 * Returns a list of regions/nodes that overlap with a query in a given subspace.
-	 * @param subspaceNum
-	 * @param qcomponents, takes matching attributes as input
-	 * @return
-	 */
-//	public HashMap<Integer, RegionInfoClass> 
-//		getOverlappingRegionsInSubspace(int subspaceId, int replicaNum, 
-//				HashMap<String, ProcessingQueryComponent> matchingQueryComponents)
-//	{
-//		return this.guidAttributesStorage.getOverlappingRegionsInSubspace
-//							(subspaceId, replicaNum, matchingQueryComponents);
-//	}
 	
 	/**
 	 * This function is implemented here as it involves 

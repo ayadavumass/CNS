@@ -19,7 +19,7 @@ import edu.umass.cs.contextservice.logging.ContextServiceLogger;
 import edu.umass.cs.contextservice.messages.QueryMesgToSubspaceRegion;
 import edu.umass.cs.contextservice.messages.QueryMesgToSubspaceRegionReply;
 import edu.umass.cs.contextservice.messages.QueryMsgFromUserReply;
-import edu.umass.cs.contextservice.profilers.ProfilerStatClass;
+import edu.umass.cs.contextservice.profilers.CNSProfiler;
 import edu.umass.cs.contextservice.queryparsing.QueryInfo;
 import edu.umass.cs.contextservice.queryparsing.QueryParser;
 import edu.umass.cs.contextservice.regionmapper.AbstractRegionMappingPolicy;
@@ -36,7 +36,7 @@ public class GUIDAttrValueProcessing
 			AbstractDataStorageDB hyperspaceDB, 
 		JSONMessenger<Integer> messenger , 
 		ConcurrentHashMap<Long, QueryInfo> pendingQueryRequests, 
-		ProfilerStatClass profStats )
+		CNSProfiler profStats )
 	{
 		super(myID, regionMappingPolicy, 
 				hyperspaceDB, messenger , 

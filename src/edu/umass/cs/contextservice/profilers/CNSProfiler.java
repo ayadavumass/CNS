@@ -1,8 +1,8 @@
 package edu.umass.cs.contextservice.profilers;
 
 
-public class ProfilerStatClass implements Runnable
-{		
+public class CNSProfiler implements Runnable
+{
 	private long incomingUpdateRate					= 0;
 	private long incomingSearchRate					= 0;
 	
@@ -16,7 +16,21 @@ public class ProfilerStatClass implements Runnable
 	private long sumCNSUpdateTime					= 0;
 	private long numUpdateReqs 						= 0;
 	
+	private long sumGetConnectionTime				= 0;
+	private long numGetConnSamples					= 0;
+	
+	
+	private long sumGetGuidHashIndexTime			= 0;
+	private long numGetGuidHashIndexSamples 		= 0;
+	
+	private long sumAddGuidUsingHashIndexTime       = 0;
+	private long numAddGuidUsingHashIndexSamples	= 0;
+	
+	private long sumAddGuidUsingAttrIndexTime       = 0;
+	private long numAddGuidUsingAttrIndexSamples	= 0;
+	
 	private final Object lock 						= new Object();
+	
 	
 	@Override
 	public void run()
@@ -46,11 +60,26 @@ public class ProfilerStatClass implements Runnable
 								+(sumCNSUpdateTime/numUpdateReqs));
 			}
 			
+			if(numGetConnSamples > 0 && numGetGuidHashIndexSamples > 0 &&
+					numAddGuidUsingHashIndexSamples > 0 && 
+					numAddGuidUsingAttrIndexSamples > 0)
+			{
+				System.out.println("AvgGetConnectionTime "
+						+ (sumGetConnectionTime/numGetConnSamples)
+						+ " AvgGetGuidHashIndexTime "
+						+ (sumGetGuidHashIndexTime/numGetGuidHashIndexSamples)
+						+" AvgAddGuidUsingHashIndexTime "
+						+ (sumAddGuidUsingHashIndexTime/numAddGuidUsingHashIndexSamples)
+						+ " AvgAddGuidUsingAttrIndexTime "
+						+ (sumAddGuidUsingAttrIndexTime/numAddGuidUsingAttrIndexSamples));
+			}
+			
 			double updrate = (incomingUpdateRate*1.0)/10.0;
 			double searchrate = (incomingSearchRate*1.0)/10.0;
 			
 			System.out.println("Incoming update rate "+updrate+" requests/s"
 								+ " search rate "+searchrate);
+			
 			
 			synchronized(lock)
 			{
@@ -101,63 +130,45 @@ public class ProfilerStatClass implements Runnable
 		}
 	}
 	
+	public void addGetConnectionTime(long timeTaken)
+	{
+		synchronized( lock )
+		{
+			this.sumGetConnectionTime = this.sumGetConnectionTime + timeTaken;
+			this.numGetConnSamples++;
+		}
+	}	
+	
+	public void addGetGUIDUsingHashIndexTime(long timeTaken)
+	{
+		synchronized( lock )
+		{
+			this.sumGetGuidHashIndexTime = this.sumGetGuidHashIndexTime + timeTaken;
+			this.numGetGuidHashIndexSamples++;
+		}
+	}
+	
+	public void addStoreGuidUsingHashIndexTime(long timeTaken)
+	{
+		synchronized( lock )
+		{
+			this.sumAddGuidUsingHashIndexTime 
+					= this.sumAddGuidUsingHashIndexTime + timeTaken;
+			this.numAddGuidUsingHashIndexSamples++;
+		}
+	}
+	
+	public void addStoreGuidUsingAttrIndexTime(long timeTaken)
+	{
+		synchronized( lock )
+		{
+			this.sumAddGuidUsingAttrIndexTime 
+					= this.sumAddGuidUsingAttrIndexTime + timeTaken;
+			this.numAddGuidUsingAttrIndexSamples++;
+		}
+	}
+	
 	public void addSearchQueryProcessTime(long timeTaken, int resultSizePerNode)
 	{
 	}
 }
-
-// TO be deleted
-/*public void incrementNumSearches(int currNumNodes, long regionMapTime)
-{
-	synchronized(lock)
-	{
-		numNodesForSearchQuery = numNodesForSearchQuery + currNumNodes;
-		numSearchReqs++;
-		sumRegionMapTime = sumRegionMapTime +regionMapTime;
-	}
-}
-
-public void incrementNumSearchesAttrIndex(long time)
-{
-	synchronized(lock)
-	{
-		this.numSearchInAttrIndex++;
-		sumAttrIndexTime = sumAttrIndexTime + time;
-	}
-}
-
-public void incrementNumUpdatesAttrIndex(long time)
-{
-	synchronized(lock)
-	{
-		this.numUpdateInAttrIndex++;
-	}
-}
-
-
-public void incrementNumUpdates(int currNumNodes)
-{
-	synchronized(lock)
-	{
-		numNodesForUpdateReqs = numNodesForUpdateReqs + currNumNodes;
-		numUpdateReqs++;
-	}
-}
-
-
-public void incrementIncomingForOverlap()
-{
-	synchronized( lock )
-	{
-		incomingORate++;
-	}
-}
-
-
-public void incrementIncomingForData()
-{
-	synchronized( lock )
-	{
-		incomingDRate++;
-	}
-}*/

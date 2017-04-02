@@ -24,6 +24,7 @@ import edu.umass.cs.contextservice.database.datasource.AbstractDataSource;
 import edu.umass.cs.contextservice.database.datasource.AbstractDataSource.DB_REQUEST_TYPE;
 import edu.umass.cs.contextservice.logging.ContextServiceLogger;
 import edu.umass.cs.contextservice.messages.dataformat.SearchReplyGUIDRepresentationJSON;
+import edu.umass.cs.contextservice.profilers.CNSProfiler;
 import edu.umass.cs.contextservice.regionmapper.helper.AttributeValueRange;
 import edu.umass.cs.contextservice.utils.Utils;
 
@@ -36,14 +37,18 @@ import edu.umass.cs.contextservice.utils.Utils;
 public class SQLGUIDStorage implements GUIDStorageInterface
 {
 	private final int myNodeID;
-	//private final HashMap<Integer, Vector<SubspaceInfo>> subspaceInfoMap;
-	private final AbstractDataSource dataSource;
 	
-	public SQLGUIDStorage( int myNodeID, AbstractDataSource dataSource )
+	private final AbstractDataSource dataSource;
+	private final CNSProfiler cnsProfiler;
+	
+	public SQLGUIDStorage( int myNodeID, AbstractDataSource dataSource ,
+			CNSProfiler cnsProfiler )
 	{
 		this.myNodeID = myNodeID;
 		this.dataSource = dataSource;
+		this.cnsProfiler = cnsProfiler;
 	}
+	
 	
 	@Override
 	public void createDataStorageTables() 
@@ -134,6 +139,7 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 		
 		return newTableCommand;
 	}
+	
 	
 	public String getHashIndexTableCreationCmd()
 	{
@@ -320,6 +326,7 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 	
 	public JSONObject getGUIDStoredUsingHashIndex( String guid )
 	{
+		long start = System.currentTimeMillis();
 		Connection myConn 		= null;
 		Statement stmt 			= null;
 		
@@ -410,6 +417,13 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 			}
 		}
 		
+		long end = System.currentTimeMillis();
+		
+		if(ContextServiceConfig.PROFILER_ENABLED)
+		{
+			cnsProfiler.addGetGUIDUsingHashIndexTime(end-start);
+		}
+		
 		return oldValueJSON;
 	}
 	
@@ -426,6 +440,7 @@ public class SQLGUIDStorage implements GUIDStorageInterface
     public void storeGUIDUsingHashIndex( String nodeGUID, 
     		JSONObject jsonToWrite, int updateOrInsert ) throws JSONException
     {
+    	long start = System.currentTimeMillis();
     	if( updateOrInsert == RegionMappingDataStorageDB.INSERT_REC )
     	{
     		this.performStoreGUIDInPrimarySubspaceInsert
@@ -436,6 +451,12 @@ public class SQLGUIDStorage implements GUIDStorageInterface
     		this.performStoreGUIDInPrimarySubspaceUpdate
     				(nodeGUID, jsonToWrite);
     	}
+    	long end = System.currentTimeMillis();
+    	
+    	if(ContextServiceConfig.PROFILER_ENABLED)
+		{
+    		cnsProfiler.addStoreGuidUsingHashIndexTime(end-start);
+		}
     }
 	
 	/**
@@ -450,6 +471,7 @@ public class SQLGUIDStorage implements GUIDStorageInterface
     public void storeGUIDUsingAttrIndex( String tableName, String nodeGUID, 
     		JSONObject updatedAttrValJSON, int updateOrInsert ) throws JSONException
     {
+    	long start = System.currentTimeMillis();
     	if( updateOrInsert == RegionMappingDataStorageDB.INSERT_REC )
     	{
     		this.performStoreGUIDInSecondarySubspaceInsert
@@ -460,6 +482,12 @@ public class SQLGUIDStorage implements GUIDStorageInterface
     		this.performStoreGUIDInSecondarySubspaceUpdate
     				( tableName, nodeGUID, updatedAttrValJSON );
     	}
+    	long end = System.currentTimeMillis();
+    	
+    	if(ContextServiceConfig.PROFILER_ENABLED)
+		{
+    		cnsProfiler.addStoreGuidUsingAttrIndexTime(end-start);
+		}
     }
     
     public void deleteGUIDFromTable(String tableName, String nodeGUID)

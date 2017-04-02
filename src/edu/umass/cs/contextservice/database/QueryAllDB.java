@@ -45,7 +45,7 @@ public class QueryAllDB
 	{
 		if(ContextServiceConfig.sqlDBType == ContextServiceConfig.SQL_DB_TYPE.MYSQL)
 		{
-			this.dataSource = new MySQLDataSource(myNodeID);
+			this.dataSource = new MySQLDataSource(myNodeID, null);
 		}
 		else if(ContextServiceConfig.sqlDBType == ContextServiceConfig.SQL_DB_TYPE.SQLITE)
 		{

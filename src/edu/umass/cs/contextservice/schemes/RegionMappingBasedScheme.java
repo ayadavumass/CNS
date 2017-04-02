@@ -40,7 +40,7 @@ import edu.umass.cs.contextservice.messages.ValueUpdateFromGNS;
 import edu.umass.cs.contextservice.messages.ValueUpdateFromGNSReply;
 import edu.umass.cs.contextservice.messages.ValueUpdateToSubspaceRegionMessage;
 import edu.umass.cs.contextservice.messages.ValueUpdateToSubspaceRegionReplyMessage;
-import edu.umass.cs.contextservice.profilers.ProfilerStatClass;
+import edu.umass.cs.contextservice.profilers.CNSProfiler;
 import edu.umass.cs.contextservice.queryparsing.QueryInfo;
 import edu.umass.cs.contextservice.regionmapper.AbstractRegionMappingPolicy;
 import edu.umass.cs.contextservice.regionmapper.FileBasedRegionMappingPolicy;
@@ -72,7 +72,7 @@ public class RegionMappingBasedScheme extends AbstractScheme
 	
 	private TriggerProcessingInterface triggerProcessing;
 	
-	private ProfilerStatClass profStats;
+	private CNSProfiler profStats;
 	
 	private AbstractDataSource dataSource;
 	
@@ -87,13 +87,13 @@ public class RegionMappingBasedScheme extends AbstractScheme
 		
 		if(ContextServiceConfig.PROFILER_ENABLED)
 		{
-			profStats = new ProfilerStatClass();
+			profStats = new CNSProfiler();
 			new Thread(profStats).start();
 		}
 		
 		if(ContextServiceConfig.sqlDBType == ContextServiceConfig.SQL_DB_TYPE.MYSQL)
 		{
-			dataSource = new MySQLDataSource(this.getMyID());
+			dataSource = new MySQLDataSource(this.getMyID(), profStats);
 		}
 		else if(ContextServiceConfig.sqlDBType == ContextServiceConfig.SQL_DB_TYPE.SQLITE)
 		{
@@ -114,11 +114,9 @@ public class RegionMappingBasedScheme extends AbstractScheme
 				break;
 			}
 			case ContextServiceConfig.DEMAND_AWARE:
-			{
-//				regionMappingPolicy = new FileBasedRegionMappingPolicyWithDB(
-//						dataSource, AttributeTypes.attributeMap, nc);
-				
-				regionMappingPolicy = new FileBasedRegionMappingPolicy(AttributeTypes.attributeMap, nc);
+			{	
+				regionMappingPolicy = new FileBasedRegionMappingPolicy
+												(AttributeTypes.attributeMap, nc);
 				break;
 			}
 			case ContextServiceConfig.HYPERDEX:
@@ -130,7 +128,8 @@ public class RegionMappingBasedScheme extends AbstractScheme
 			}
 			case ContextServiceConfig.SQRT_N_HASH:
 			{
-				regionMappingPolicy = new SqrtNConsistentHashingPolicy(AttributeTypes.attributeMap, nc);
+				regionMappingPolicy = new SqrtNConsistentHashingPolicy
+											(AttributeTypes.attributeMap, nc);
 				break;
 			}
 			default:
@@ -140,8 +139,8 @@ public class RegionMappingBasedScheme extends AbstractScheme
 		
 		regionMappingPolicy.computeRegionMapping();
 		
-		hyperspaceDB = new RegionMappingDataStorageDB(this.getMyID(), dataSource);
-		
+		hyperspaceDB = new RegionMappingDataStorageDB(this.getMyID(), dataSource, 
+							profStats);
 		
 		guidAttrValProcessing 
 					= new GUIDAttrValueProcessing(
@@ -160,14 +159,9 @@ public class RegionMappingBasedScheme extends AbstractScheme
 		}
 		
 		if(ContextServiceConfig.enableBulkLoading)
-		{
-//			BulkLoadDataInMySQLFromAFile bulkLoad 
-//					= new BulkLoadDataInMySQLFromAFile(this.getMyID(), 
-//							ContextServiceConfig.bulkLoadingFilePath, dataSource,
-//							regionMappingPolicy, this.allNodeIDs);
-			
+		{	
 			BulkLoadDataInMySQLUsingDumpSyntax bulkLoad 
-			= new BulkLoadDataInMySQLUsingDumpSyntax(this.getMyID(), 
+				= new BulkLoadDataInMySQLUsingDumpSyntax(this.getMyID(), 
 					ContextServiceConfig.bulkLoadingFilePath, dataSource,
 					regionMappingPolicy, this.allNodeIDs, 
 					((RegionMappingDataStorageDB)hyperspaceDB).getGUIDStorageInterface());

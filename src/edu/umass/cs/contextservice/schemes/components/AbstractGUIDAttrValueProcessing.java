@@ -21,7 +21,7 @@ import edu.umass.cs.contextservice.logging.ContextServiceLogger;
 import edu.umass.cs.contextservice.messages.QueryMesgToSubspaceRegion;
 import edu.umass.cs.contextservice.messages.QueryMesgToSubspaceRegionReply;
 import edu.umass.cs.contextservice.messages.ValueUpdateToSubspaceRegionMessage;
-import edu.umass.cs.contextservice.profilers.ProfilerStatClass;
+import edu.umass.cs.contextservice.profilers.CNSProfiler;
 import edu.umass.cs.contextservice.queryparsing.QueryInfo;
 import edu.umass.cs.contextservice.regionmapper.AbstractRegionMappingPolicy;
 import edu.umass.cs.contextservice.regionmapper.helper.AttributeValueRange;
@@ -50,7 +50,7 @@ public abstract class AbstractGUIDAttrValueProcessing
 	
 	protected long queryIdCounter										= 0;
 	
-	protected final ProfilerStatClass profStats;
+	protected final CNSProfiler profStats;
 	
 	protected final Random defaultAttrValGenerator;
 	
@@ -59,7 +59,7 @@ public abstract class AbstractGUIDAttrValueProcessing
 			AbstractRegionMappingPolicy regionMappingPolicy, 
 			AbstractDataStorageDB hyperspaceDB, JSONMessenger<Integer> messenger , 
 		ConcurrentHashMap<Long, QueryInfo> pendingQueryRequests, 
-		ProfilerStatClass profStats )
+		CNSProfiler profStats )
 	{
 		this.myID = myID;
 		this.regionMappingPolicy = regionMappingPolicy;

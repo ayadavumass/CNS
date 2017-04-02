@@ -13,19 +13,23 @@ import com.mchange.v2.c3p0.ComboPooledDataSource;
 
 import edu.umass.cs.contextservice.config.ContextServiceConfig;
 import edu.umass.cs.contextservice.logging.ContextServiceLogger;
+import edu.umass.cs.contextservice.profilers.CNSProfiler;
 
 public class MySQLDataSource extends AbstractDataSource
 {
 	private final HashMap<Integer, SQLNodeInfo> sqlNodeInfoMap;
 	
     private ComboPooledDataSource dataSource;
-	//private BasicDataSource dataSource;
     private final int myNodeId;
-
-    // Commented to test which connection pool is better, apache dbcp or ComboPooledDataSource
-    public MySQLDataSource(Integer myNodeID) throws IOException, SQLException, PropertyVetoException 
+    
+    private final CNSProfiler profStats;
+    
+    
+    public MySQLDataSource(Integer myNodeID, CNSProfiler profStats) throws IOException, SQLException, PropertyVetoException 
     {
     	myNodeId = myNodeID;
+    	this.profStats = profStats;
+    			
     	this.sqlNodeInfoMap = new HashMap<Integer, SQLNodeInfo>();
     	readDBNodeSetup();
     	
@@ -82,64 +86,21 @@ public class MySQLDataSource extends AbstractDataSource
         ContextServiceLogger.getLogger().fine("HyperspaceMySQLDB datasource "
         		+ "max pool size "+dataSource.getMaxPoolSize());
     }
-    
-    /*public MySQLDataSource(Integer myNodeID) 
-    			throws IOException, SQLException, PropertyVetoException 
-    {
-    	myNodeId = myNodeID;
-    	this.sqlNodeInfoMap = new HashMap<Integer, SQLNodeInfo>();
-    	readDBNodeSetup();
-    	
-    	int portNum = sqlNodeInfoMap.get(myNodeID).portNum;
-    	String dbName = sqlNodeInfoMap.get(myNodeID).databaseName;
-    	String username = sqlNodeInfoMap.get(myNodeID).username;
-    	String password = sqlNodeInfoMap.get(myNodeID).password;
-    	String arguments = sqlNodeInfoMap.get(myNodeID).arguments;
-    	
-    	dropDB(sqlNodeInfoMap.get(myNodeID));
-    	createDB(sqlNodeInfoMap.get(myNodeID));
-    	
-    	dataSource = new BasicDataSource();
-        //cpds = new ComboPooledDataSource();
-    	//dataSource.setDriverClass("com.mysql.jdbc.Driver"); //loads the jdbc driver
-        if(arguments.length() > 0)
-        {
-        	dataSource.setUrl("jdbc:mysql://localhost:"+portNum+"/"+dbName+"?"+arguments);
-        }
-        else
-        {
-        	dataSource.setUrl("jdbc:mysql://localhost:"+portNum+"/"+dbName);
-        }
-        
-        
-        dataSource.setUsername(username);
-        dataSource.setPassword(password);
-
-        //the settings below are optional -- c3p0 can work with defaults
-        //cpds.setMinPoolSize(5);
-        //cpds.setAcquireIncrement(5);
-        // NOTE: max pool size of DB affects the performance alot
-        // definitely set it, don't leave it for default. default gives very bad
-        // update performance. 
-        // TODO: need to find its optimal value.
-        // on d710 cluster 150 gives the best performance, after that performance remains same.
-        // should be at least same as the hyperspace hashing pool size.
-        // actually default mysql server max connection is 151. So this should be
-        // set in conjuction with that. and also the hyperpsace hashing thread pool
-        // size should be set greater than that. These things affect system performance a lot.
-       
-        dataSource.setMaxTotal(ContextServiceConfig.MYSQL_MAX_CONNECTIONS);
-        dataSource.setMaxIdle(ContextServiceConfig.MYSQL_MAX_CONNECTIONS);
-        
-        dataSource.setEnableAutoCommitOnReturn(false);
-    }*/
-    
 
     public Connection getConnection(DB_REQUEST_TYPE dbReqType) throws SQLException 
     {
+    	long start = System.currentTimeMillis();
     	Connection conn = this.dataSource.getConnection();
+    	long end = System.currentTimeMillis();
+    	
+    	if(ContextServiceConfig.PROFILER_ENABLED)
+    	{
+    		profStats.addGetConnectionTime((end-start));
+    	}
+    	
         return conn;
     }
+    
     
     @Override
 	public String getCmdLineConnString() 
