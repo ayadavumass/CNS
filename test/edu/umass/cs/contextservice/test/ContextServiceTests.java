@@ -27,6 +27,7 @@ import edu.umass.cs.contextservice.client.common.ACLEntry;
 import edu.umass.cs.contextservice.client.common.AnonymizedIDEntry;
 import edu.umass.cs.contextservice.config.ContextServiceConfig;
 import edu.umass.cs.contextservice.config.ContextServiceConfig.PrivacySchemes;
+import edu.umass.cs.contextservice.database.datasource.MySQLDataSource;
 import edu.umass.cs.contextservice.nodeApp.StartContextServiceNode;
 import edu.umass.cs.contextservice.utils.Utils;
 import edu.umass.cs.gnsclient.client.util.GuidEntry;
@@ -66,10 +67,11 @@ public class ContextServiceTests
 		// not returned to client so they client doesn't become bottleneck.
 		ContextServiceClient.EXPERIMENT_MODE            = false;
 		
+		// droping db for tests.
+		ContextServiceConfig.dropLocalDB 				= true;
 		
 		// start context service.
 		startFourNodeSetup();
-		
 		
 		// make a client connection
 		csClient = new ContextServiceClient(csNodeIp, csPort, false,

@@ -36,7 +36,11 @@ public class ContextServiceConfig
 	public static final boolean USE_GNS								= false;
 	
 	
-	public static final boolean PROFILER_THREAD						= true;
+	// if profiler is enabled then various stats of 
+	// a search and update requests will be profiled
+	// profiler is light-weight, doesn't have any significant reduction in the CNS capacity
+	// as only average stats are reported every 10 s. 
+	public static final boolean PROFILER_ENABLED					= true;
 	
 	// config files
 	
@@ -147,10 +151,6 @@ public class ContextServiceConfig
 	public static final String ASSYMETRIC_ENC_ALGORITHM				= "RSA";
 	public static final String SYMMETRIC_ENC_ALGORITHM				= "DES";
 	public static final String STRING_ENCODING						= "UTF-8";
-	
-	// if true some debugging information will be computed and printed.
-	public static final boolean DEBUG_MODE							= false;
-	
 	
 	// numAttrsPerSubspace used in HyperDex
 	public static double numAttrsPerSubspace						= 2.0;

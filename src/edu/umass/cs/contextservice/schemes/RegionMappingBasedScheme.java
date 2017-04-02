@@ -85,7 +85,7 @@ public class RegionMappingBasedScheme extends AbstractScheme
 	{
 		super(nc, m);
 		
-		if(ContextServiceConfig.PROFILER_THREAD)
+		if(ContextServiceConfig.PROFILER_ENABLED)
 		{
 			profStats = new ProfilerStatClass();
 			new Thread(profStats).start();
@@ -182,7 +182,7 @@ public class RegionMappingBasedScheme extends AbstractScheme
 			ProtocolEvent<PacketType, String> event,
 			ProtocolTask<Integer, PacketType, String>[] ptasks)
 	{
-		if(ContextServiceConfig.PROFILER_THREAD)
+		if(ContextServiceConfig.PROFILER_ENABLED)
 		{
 			profStats.incrementIncomingSearchRate();;
 		}
@@ -420,10 +420,6 @@ public class RegionMappingBasedScheme extends AbstractScheme
 		// guid stored in primary subspace.
 		if( this.getMyID() != respNodeId )
 		{
-//			if(respNodeId >= 128)
-//			{
-//				System.out.println("ID greater than 128 "+respNodeId);
-//			}
 			ContextServiceLogger.getLogger().fine("not primary node case souceIp "
 													+ valueUpdateFromGNS.getSourceIP()
 													+ " sourcePort "
@@ -431,7 +427,8 @@ public class RegionMappingBasedScheme extends AbstractScheme
 			try
 			{
 				this.messenger.sendToID( respNodeId, valueUpdateFromGNS.toJSONObject() );
-			} catch (IOException e)
+			} 
+			catch (IOException e)
 			{
 				e.printStackTrace();
 			} catch (JSONException e)
@@ -440,12 +437,7 @@ public class RegionMappingBasedScheme extends AbstractScheme
 			}
 		}
 		else
-		{	
-//			if(respNodeId >= 128)
-//			{
-//				System.out.println("ID greater than 128 mesg recvd"+respNodeId);
-//			}
-			
+		{
 			// this piece of code takes care of consistency. Updates to a 
 			// GUID are serialized here. For a GUID only one update is outstanding at
 			// time. But multiple GUIDs can be updated in parallel.
@@ -612,6 +604,7 @@ public class RegionMappingBasedScheme extends AbstractScheme
 		}
 	}
 	
+	
 	private void processValueUpdateToSubspaceRegionMessageReply
 		( ValueUpdateToSubspaceRegionReplyMessage 
 		valueUpdateToSubspaceRegionReplyMessage )
@@ -674,17 +667,21 @@ public class RegionMappingBasedScheme extends AbstractScheme
 				}
 			}
 			
-			
 			UpdateInfo removedUpdate 
-					=  pendingUpdateRequests.remove(requestID);;
+					=  pendingUpdateRequests.remove(requestID);
 			
 			// starts the queues serialized updates for that guid
 			if(removedUpdate != null)
 			{
 				startANewUpdate(removedUpdate, requestID);
+				removedUpdate.getUpdateStats().setUpdateFinishTime();
+				
+				if(ContextServiceConfig.PROFILER_ENABLED)
+					profStats.addUpdateStats(removedUpdate.getUpdateStats());
 			}
 		}
 	}
+	
 	
 	private void startANewUpdate(UpdateInfo removedUpdate, long requestID)
 	{
@@ -843,16 +840,10 @@ public class RegionMappingBasedScheme extends AbstractScheme
 				+queryMesgToSubspaceRegion.getSender());
 	}
 	
-	
 	private void processValueUpdateToSubspaceRegionMessage(
 				ValueUpdateToSubspaceRegionMessage 
 				valueUpdateToSubspaceRegionMessage )
-	{
-		if(ContextServiceConfig.PROFILER_THREAD)
-		{
-			profStats.incrementNumUpdatesAttrIndex();
-		}
-		
+	{	
 		this.guidAttrValProcessing.processValueUpdateToSubspaceRegionMessage
 					( valueUpdateToSubspaceRegionMessage);
 		

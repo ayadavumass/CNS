@@ -136,19 +136,10 @@ public class RegionMappingDataStorageDB extends AbstractDataStorageDB
 	public int processSearchQueryUsingAttrIndex( HashMap<String, AttributeValueRange> 
 			queryAttrValRange, JSONArray resultArray )
 	{
-		long start = System.currentTimeMillis();
 		int resultSize 
 			= this.guidAttributesStorage.processSearchQueryUsingAttrIndex
 												(queryAttrValRange, resultArray);
 		
-		long end = System.currentTimeMillis();
-		
-		if( ContextServiceConfig.DEBUG_MODE )
-		{
-			System.out.println("TIME_DEBUG: processSearchQueryInSubspaceRegion "
-					+ " without privacy time "
-					+ (end-start));
-		}
 		return resultSize;	
 	}
 	
@@ -202,18 +193,9 @@ public class RegionMappingDataStorageDB extends AbstractDataStorageDB
 	
 	public void storeGUIDUsingHashIndex( String nodeGUID, 
     		JSONObject jsonToWrite, int updateOrInsert ) throws JSONException
-	{	
-		long start = System.currentTimeMillis();
+	{
 		this.guidAttributesStorage.storeGUIDUsingHashIndex
 			( nodeGUID, jsonToWrite, updateOrInsert);
-		
-		long end = System.currentTimeMillis();
-		
-		if( ContextServiceConfig.DEBUG_MODE )
-		{
-			System.out.println
-				( "storeGUIDInPrimarySubspace "+(end-start) );
-		}
 	}
 	
 	/**
@@ -231,29 +213,13 @@ public class RegionMappingDataStorageDB extends AbstractDataStorageDB
     		JSONObject jsonToWrite, int updateOrInsert) throws JSONException
     {	
 		// no need to add realIDEntryption Info in primary subspaces.
-		long start = System.currentTimeMillis();
 		this.guidAttributesStorage.storeGUIDUsingAttrIndex
 					(tableName, nodeGUID, jsonToWrite, updateOrInsert);
-		long end = System.currentTimeMillis();
-		
-		if( ContextServiceConfig.DEBUG_MODE )
-		{
-			System.out.println
-				( "storeGUIDInSubspace without privacy storage "+(end-start) );
-		}
     }
 	
 	public void deleteGUIDFromTable(String tableName, String nodeGUID)
-	{	
-		long start = System.currentTimeMillis();
+	{
 		this.guidAttributesStorage.deleteGUIDFromTable(tableName, nodeGUID);
-		long end = System.currentTimeMillis();
-		
-		if(ContextServiceConfig.DEBUG_MODE)
-		{
-			System.out.println("deleteGUIDFromSubspaceRegion without "
-					+ "privacy storage "+(end-start));
-		}
 	}
 	
 	public boolean checkAndInsertSearchQueryRecordFromPrimaryTriggerSubspace( String groupGUID, 

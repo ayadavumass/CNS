@@ -58,6 +58,7 @@ public class GUIDAttrValueProcessing
 		grpGUID = queryInfo.getGroupGUID();
 		expiryTime = queryInfo.getExpiryTime();
 		
+		
 		if( grpGUID.length() <= 0 )
 		{
 			ContextServiceLogger.getLogger().fine
@@ -71,19 +72,17 @@ public class GUIDAttrValueProcessing
 		}
 		pendingQueryRequests.put(queryInfo.getRequestId(), queryInfo);
 		
-//		ValueSpaceInfo searchQValSpace = ValueSpaceInfo.getAllAttrsValueSpaceInfo
-//										(queryInfo.getSearchQueryAttrValMap(), 
-//												AttributeTypes.attributeMap);
+		
 		long start = System.currentTimeMillis();
 		List<Integer> nodeList 
 				= regionMappingPolicy.getNodeIDsForSearch
 					(queryInfo.getSearchQueryAttrValMap());
 		long end = System.currentTimeMillis();
 		
-		
-		if(ContextServiceConfig.PROFILER_THREAD)
+		if(ContextServiceConfig.PROFILER_ENABLED)
 		{
-			profStats.incrementNumSearches(nodeList.size(), (end-start));	
+			queryInfo.getSearchStats().setNodeInfoAndTime
+								(nodeList.size(), (end-start));
 		}
 		
 		queryInfo.initializeSearchQueryReplyInfo(nodeList);
@@ -131,9 +130,9 @@ public class GUIDAttrValueProcessing
 				(searchAttrValRange, resultGUIDs);
 		long end = System.currentTimeMillis();
 		
-		if(ContextServiceConfig.PROFILER_THREAD)
+		if(ContextServiceConfig.PROFILER_ENABLED)
 		{
-			profStats.incrementNumSearchesAttrIndex((end-start));	
+			profStats.addSearchQueryProcessTime((end-start), resultSize);
 		}
 		
 		return resultSize;
@@ -242,9 +241,16 @@ public class GUIDAttrValueProcessing
 			ContextServiceLogger.getLogger().info("Sending queryMsgFromUserReply mesg from " 
 					+ myID +" to node "+new InetSocketAddress(queryInfo.getUserIP(), queryInfo.getUserPort()));
 
-			pendingQueryRequests.remove(requestId);
+			QueryInfo qInfo = pendingQueryRequests.remove(requestId);
+			qInfo.getSearchStats().setQueryEndTime();
+			
+			if(ContextServiceConfig.PROFILER_ENABLED)
+			{
+				profStats.addSearchStats(qInfo.getSearchStats());
+			}
 		}
 	}
+	
 	
 	/**
 	 * This function processes a request serially.
@@ -265,21 +271,16 @@ public class GUIDAttrValueProcessing
 		// get the old value and process the update in primary subspace and other subspaces.
 		
 		try
-		{	
+		{
 			boolean firstTimeInsert = false;
 			
-			long start 	 = System.currentTimeMillis();
-			
+			long start = System.currentTimeMillis();
 			JSONObject oldValueJSON 
 						 = this.hyperspaceDB.getGUIDStoredUsingHashIndex(GUID);
+			long end = System.currentTimeMillis();
 			
-			long end 	 = System.currentTimeMillis();
-			
-			if( ContextServiceConfig.DEBUG_MODE )
-			{
-				System.out.println("getGUIDStoredInPrimarySubspace time "+(end-start)
-							+" since upd start"+(end-updateStartTime));
-			}
+			if(ContextServiceConfig.PROFILER_ENABLED)
+				updateReq.getUpdateStats().setHashIndexReadTime(end-start);
 			
 			int updateOrInsert 			= -1;
 			
@@ -290,28 +291,24 @@ public class GUIDAttrValueProcessing
 			}
 			else
 			{
-				profStats.incrementIncomingUpdateRate();
+				if(ContextServiceConfig.PROFILER_ENABLED)
+				{
+					profStats.incrementIncomingUpdateRate();
+				}
 				firstTimeInsert = false;
 				updateOrInsert = RegionMappingDataStorageDB.UPDATE_REC;
-				
-				if(ContextServiceConfig.SEARCH_UPDATE_TRACE_ENABLE)
-				{
-					
-				}
 			}
 			
 			JSONObject jsonToWrite = getJSONToWriteInPrimarySubspace( oldValueJSON, 
 					attrValuePairs, anonymizedIDToGuidMapping );
 			
+			start = System.currentTimeMillis();
 			this.hyperspaceDB.storeGUIDUsingHashIndex
 								(GUID, jsonToWrite, updateOrInsert);
+			end = System.currentTimeMillis();
 			
-			
-			if(ContextServiceConfig.DEBUG_MODE)
-			{
-				long now = System.currentTimeMillis();
-				System.out.println("primary subspace update complete "+(now-updateStartTime));
-			}
+			if(ContextServiceConfig.PROFILER_ENABLED)
+				updateReq.getUpdateStats().setHashIndexWriteTime(end-start);
 			
 			// process update at secondary subspaces.
 			updateGUIDInAttrIndexes( oldValueJSON , 
@@ -323,6 +320,7 @@ public class GUIDAttrValueProcessing
 			e.printStackTrace();
 		}
 	}
+	
 	
 	private void updateGUIDInAttrIndexes( JSONObject oldValueJSON , 
 			boolean firstTimeInsert , JSONObject updatedAttrValJSON , 

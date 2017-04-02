@@ -334,7 +334,6 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 		{
 			myConn = this.dataSource.getConnection(DB_REQUEST_TYPE.SELECT);
 			stmt = myConn.createStatement();
-			long start = System.currentTimeMillis();
 			ResultSet rs = stmt.executeQuery(selectQuery);
 			
 			while( rs.next() )
@@ -392,13 +391,7 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 					}
 				}
 			}
-			rs.close();	
-			long end = System.currentTimeMillis();
-			if(ContextServiceConfig.DEBUG_MODE)
-			{
-				System.out.println("TIME_DEBUG: getGUIDStoredInPrimarySubspace "
-										+(end-start));
-			}
+			rs.close();
 		} catch (SQLException e)
 		{
 			e.printStackTrace();
@@ -457,43 +450,22 @@ public class SQLGUIDStorage implements GUIDStorageInterface
     public void storeGUIDUsingAttrIndex( String tableName, String nodeGUID, 
     		JSONObject updatedAttrValJSON, int updateOrInsert ) throws JSONException
     {
-    	long start = System.currentTimeMillis();
-    	if(ContextServiceConfig.DEBUG_MODE)
-    	{
-    		ContextServiceLogger.getLogger().fine("STARTED storeGUIDInSecondarySubspace "+nodeGUID);
-    	}
-    	
     	if( updateOrInsert == RegionMappingDataStorageDB.INSERT_REC )
     	{
     		this.performStoreGUIDInSecondarySubspaceInsert
-    			(tableName, nodeGUID, updatedAttrValJSON);
-    		
-    		if(ContextServiceConfig.DEBUG_MODE)
-        	{
-        		long end = System.currentTimeMillis();
-        		ContextServiceLogger.getLogger().fine
-        		("FINISHED storeGUIDInSecondarySubspace Insert "+nodeGUID
-        				+" time "+(end-start));
-        	}	
+    			(tableName, nodeGUID, updatedAttrValJSON);	
     	}
     	else if( updateOrInsert == RegionMappingDataStorageDB.UPDATE_REC )
     	{
     		this.performStoreGUIDInSecondarySubspaceUpdate
     				( tableName, nodeGUID, updatedAttrValJSON );
-    		
-    		if(ContextServiceConfig.DEBUG_MODE)
-        	{
-        		long end = System.currentTimeMillis();
-        		ContextServiceLogger.getLogger().fine
-        		("FINISHED storeGUIDInSecondarySubspace Update "+nodeGUID
-        				+" time "+(end-start));
-        	}
     	}
     }
     
     public void deleteGUIDFromTable(String tableName, String nodeGUID)
 	{
-		String deleteCommand = "DELETE FROM "+tableName+" WHERE nodeGUID= X'"+nodeGUID+"'";
+		String deleteCommand = "DELETE FROM "+tableName
+							+" WHERE nodeGUID= X'"+nodeGUID+"'";
 		Connection myConn 	= null;
 		Statement stmt 		= null;
 		
@@ -501,15 +473,7 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 		{
 			myConn = this.dataSource.getConnection(DB_REQUEST_TYPE.UPDATE);
 			stmt = myConn.createStatement();
-			long start = System.currentTimeMillis();
 			stmt.executeUpdate(deleteCommand);
-			long end = System.currentTimeMillis();
-			
-			if( ContextServiceConfig.DEBUG_MODE )
-        	{
-				System.out.println("TIME_DEBUG: deleteGUIDFromSubspaceRegion "+(end-start));
-        	}
-			
 		} catch(SQLException sqex)
 		{
 			sqex.printStackTrace();
@@ -744,18 +708,8 @@ public class SQLGUIDStorage implements GUIDStorageInterface
             stmt = myConn.createStatement();
             
         	// if update fails then insert
-    		//ContextServiceLogger.getLogger().fine(this.myNodeID+" EXECUTING UPDATE "+updateSqlQuery);
-    		long start   = System.currentTimeMillis();
         	int rowCount = stmt.executeUpdate(updateSqlQuery);
-        	long end     = System.currentTimeMillis();
         	
-        	if(ContextServiceConfig.DEBUG_MODE)
-        	{
-        		System.out.println("TIME_DEBUG: performStoreGUIDInSecondarySubspaceUpdate "
-        						+(end-start));
-        	}
-        	
-        	//ContextServiceLogger.getLogger().fine(this.myNodeID+" EXECUTING UPDATE rowCount "+rowCount);
         	// update failed try insert
         	if(rowCount == 0)
         	{
@@ -789,7 +743,6 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 	private void performStoreGUIDInSecondarySubspaceInsert( String tableName, String nodeGUID, 
     		JSONObject toWriteJSON )
 	{
-		long s1 = System.currentTimeMillis();
 		ContextServiceLogger.getLogger().fine( "STARTED performStoreGUIDInSubspaceInsert "
 				+tableName+" nodeGUID "+nodeGUID );
     	
@@ -825,7 +778,6 @@ public class SQLGUIDStorage implements GUIDStorageInterface
     		
     		first = true;
     		colIter = toWriteJSON.keys();
-    		long start1 = System.currentTimeMillis();
         	// just a way to iterate over attributes.
     		while( colIter.hasNext() )
     		{
@@ -868,27 +820,17 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 	            	insertQuery = insertQuery +" , "+colValue;
 	            }
     		}
-    		long end1 = System.currentTimeMillis();
     		insertQuery = insertQuery +" , X'"+nodeGUID+"' )";
-    		
-    		long end2 = System.currentTimeMillis();
-    		
     		
     		myConn = this.dataSource.getConnection(DB_REQUEST_TYPE.UPDATE);
             stmt = myConn.createStatement();  
             
-    		ContextServiceLogger.getLogger().fine(this.myNodeID+" EXECUTING INSERT "+insertQuery);
-    		long start   = System.currentTimeMillis();
+    		ContextServiceLogger.getLogger().fine
+    					(this.myNodeID+" EXECUTING INSERT "+insertQuery);
     		int rowCount = stmt.executeUpdate(insertQuery);
-    		long end     = System.currentTimeMillis();
     		
-    		if(ContextServiceConfig.DEBUG_MODE)
-        	{
-        		System.out.println("TIME_DEBUG: performStoreGUIDInSecondarySubspaceInsert insert  "
-        				+tableName
-        				+" nodeGUID "+nodeGUID+" "+(end-start)+" "+(end1-start1)+" "+(end2-end1));
-        	}
-    		ContextServiceLogger.getLogger().fine(this.myNodeID+" EXECUTING INSERT rowCount "
+    		ContextServiceLogger.getLogger().fine
+    					(this.myNodeID+" EXECUTING INSERT rowCount "
     					+rowCount+" insertQuery "+insertQuery);
         }
         catch ( Exception | Error ex )
@@ -909,12 +851,6 @@ public class SQLGUIDStorage implements GUIDStorageInterface
             	e.printStackTrace();
             }
         }
-        long e1 = System.currentTimeMillis();
-        if(ContextServiceConfig.DEBUG_MODE)
-    	{
-    		System.out.println("TIME_DEBUG: Total performStoreGUIDInSecondarySubspaceInsert insert  "
-    				+ (e1-s1)+"updatedAttrValJSON "+toWriteJSON.length());
-    	}
 	}
 	
 	/**
@@ -1005,18 +941,8 @@ public class SQLGUIDStorage implements GUIDStorageInterface
             stmt = myConn.createStatement();
             
         	// if update fails then insert
-    		//ContextServiceLogger.getLogger().fine(this.myNodeID+" EXECUTING UPDATE "+updateSqlQuery);
-    		long start   = System.currentTimeMillis();
         	int rowCount = stmt.executeUpdate(updateSqlQuery);
-        	long end     = System.currentTimeMillis();
         	
-        	if(ContextServiceConfig.DEBUG_MODE)
-        	{
-        		System.out.println("TIME_DEBUG: performStoreGUIDInPrimarySubspaceUpdate "
-        						+(end-start));
-        	}
-        	
-        	//ContextServiceLogger.getLogger().fine(this.myNodeID+" EXECUTING UPDATE rowCount "+rowCount);
         	// update failed try insert
         	if(rowCount == 0)
         	{
@@ -1139,23 +1065,15 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 	            	insertQuery = insertQuery +" , "+colValue;
 	            }
 			}
-    		
-			insertQuery = insertQuery +" , X'"+nodeGUID+"' )";			
-
+			
+			insertQuery = insertQuery +" , X'"+nodeGUID+"' )";
     		
     		myConn = this.dataSource.getConnection(DB_REQUEST_TYPE.UPDATE);
             stmt = myConn.createStatement();  
             
     		ContextServiceLogger.getLogger().fine(this.myNodeID+" EXECUTING INSERT "+insertQuery);
-    		long start   = System.currentTimeMillis();
-    		int rowCount = stmt.executeUpdate(insertQuery);
-    		long end     = System.currentTimeMillis();
     		
-    		if( ContextServiceConfig.DEBUG_MODE )
-        	{
-    			System.out.println("TIME_DEBUG: performStoreGUIDInPrimarySubspaceInsert "
-        															+(end-start) );
-        	}
+    		int rowCount = stmt.executeUpdate(insertQuery);
     		
     		ContextServiceLogger.getLogger().fine(this.myNodeID+" EXECUTING INSERT rowCount "+rowCount
     					+" insertQuery "+insertQuery);	

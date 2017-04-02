@@ -434,7 +434,7 @@ public class QueryAllDB
 		{
 			myConn = this.dataSource.getConnection(DB_REQUEST_TYPE.SELECT);
 			stmt = myConn.createStatement();
-			long start = System.currentTimeMillis();
+			
 			ResultSet rs = stmt.executeQuery(selectQuery);
 			
 			while( rs.next() )
@@ -458,12 +458,7 @@ public class QueryAllDB
 				}
 			}
 			rs.close();	
-			long end = System.currentTimeMillis();
-			if(ContextServiceConfig.DEBUG_MODE)
-			{
-				System.out.println("TIME_DEBUG: getGUIDStoredInPrimarySubspace "
-										+(end-start));
-			}
+			
 		} catch (SQLException e)
 		{
 			e.printStackTrace();
@@ -563,15 +558,7 @@ public class QueryAllDB
             stmt = myConn.createStatement();
             
         	// if update fails then insert
-    		long start   = System.currentTimeMillis();
         	int rowCount = stmt.executeUpdate(updateSqlQuery);
-        	long end     = System.currentTimeMillis();
-        	
-        	if(ContextServiceConfig.DEBUG_MODE)
-        	{
-        		System.out.println("TIME_DEBUG: performStoreGUIDInPrimarySubspaceUpdate "
-        						+(end-start));
-        	}
         	
         	//ContextServiceLogger.getLogger().fine(this.myNodeID+" EXECUTING UPDATE rowCount "+rowCount);
         	// update failed try insert
@@ -674,15 +661,7 @@ public class QueryAllDB
             stmt = myConn.createStatement();  
             
     		ContextServiceLogger.getLogger().fine(" EXECUTING INSERT "+insertQuery);
-    		long start   = System.currentTimeMillis();
     		int rowCount = stmt.executeUpdate(insertQuery);
-    		long end     = System.currentTimeMillis();
-    		
-    		if( ContextServiceConfig.DEBUG_MODE )
-        	{
-    			System.out.println("TIME_DEBUG: performStoreGUIDInPrimarySubspaceInsert "
-        															+(end-start) );
-        	}
     		
     		ContextServiceLogger.getLogger().fine(" EXECUTING INSERT rowCount "+rowCount
     					+" insertQuery "+insertQuery);	

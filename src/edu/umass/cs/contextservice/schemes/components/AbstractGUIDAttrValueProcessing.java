@@ -216,11 +216,6 @@ public abstract class AbstractGUIDAttrValueProcessing
 		
 		updateReq.setNumberOfExpectedReplies(totalExpectedUpdateReplies);
 		
-		if(ContextServiceConfig.PROFILER_THREAD)
-		{
-			profStats.incrementNumUpdates(totalExpectedUpdateReplies);
-		}
-		
 		
 		JSONObject unsetAttrsJSON = primarySubspaceJSON.getJSONObject
 				(RegionMappingDataStorageDB.unsetAttrsColName);
@@ -393,15 +388,17 @@ public abstract class AbstractGUIDAttrValueProcessing
 			newValSpace.getValueSpaceBoundary().put(attrName, attrValRange);
 		}
 		
+		long start = System.currentTimeMillis();
 		List<Integer> newNodeList 
 					= regionMappingPolicy.getNodeIDsForUpdate
 						(GUID, newValSpace.getValueSpaceBoundary());
+		long end = System.currentTimeMillis();
 		
 		updateReq.setNumberOfExpectedReplies(newNodeList.size());
 		
-		if(ContextServiceConfig.PROFILER_THREAD)
+		if(ContextServiceConfig.PROFILER_ENABLED)
 		{
-			profStats.incrementNumUpdates(newNodeList.size());
+			updateReq.getUpdateStats().setRegionCompTime(end-start);
 		}
 	
 		// compute the JSONToWrite
@@ -582,8 +579,6 @@ public abstract class AbstractGUIDAttrValueProcessing
 		int operType 			= valueUpdateToSubspaceRegionMessage.getOperType();
 		boolean firstTimeInsert = valueUpdateToSubspaceRegionMessage.getFirstTimeInsert();
 		
-		long udpateStartTime 	= valueUpdateToSubspaceRegionMessage.getUpdateStartTime();
-		
 		String tableName 		= RegionMappingDataStorageDB.ATTR_INDEX_TABLE_NAME;
 		
 		try 
@@ -624,13 +619,6 @@ public abstract class AbstractGUIDAttrValueProcessing
 					}
 					break;
 				}
-			}
-			
-			if(ContextServiceConfig.DEBUG_MODE)
-			{
-				long now = System.currentTimeMillis();
-				System.out.println("processValueUpdateToSubspaceRegionMessage completes "
-						+(now-udpateStartTime));
 			}
 		} catch (JSONException e)
 		{

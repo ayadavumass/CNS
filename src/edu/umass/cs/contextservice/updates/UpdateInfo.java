@@ -9,6 +9,7 @@ import edu.umass.cs.contextservice.config.ContextServiceConfig;
 
 import edu.umass.cs.contextservice.database.triggers.GroupGUIDInfoClass;
 import edu.umass.cs.contextservice.messages.ValueUpdateFromGNS;
+import edu.umass.cs.contextservice.profilers.UpdateStats;
 
 public class UpdateInfo
 {	
@@ -18,33 +19,15 @@ public class UpdateInfo
 	
 	private boolean updateReqCompl;
 	
-	// string key is of the form subspaceId-replicaNum, value integer is 
-	// num of replies
-	//private HashMap<String, Integer> valueUpdateRepliesMap 						= null;
-	// counter over number of subspaces
-	
-	
 	private int totalExpectedValueUpdateReplies									= -1;
 	private int valueUpdateRepliesCounter 										= 0;
-	
-	
-	
 	
 	private HashMap<String, GroupGUIDInfoClass> toBeRemovedMap;
 	private HashMap<String, GroupGUIDInfoClass> toBeAddedMap;
 	
-	
-	// string key is of the form subspaceId-replicaNum, value integer is 
-	// num of replies
-	//private HashMap<String, Integer> privacyRepliesMap 						= null;
-	// counter over number of subspaces
-	// FIXME: privacy update in anonymized ID later can be optimized 
-	// so that the anonymized ID is only updated in subspaces whose attributes
-	// have a non-zero intersection with attribute set of the anonymized ID.
-	// But for now it is updated in every subspace.
-	
 	private final Object repliesLock 											= new Object();
 	
+	private UpdateStats updateStat;
 	
 	public UpdateInfo( ValueUpdateFromGNS valUpdMsgFromGNS, long updateRequestId )
 	{
@@ -53,14 +36,15 @@ public class UpdateInfo
 		
 		updateReqCompl = false;
 		
-//		valueUpdateRepliesMap = new HashMap<String, Integer>();
-		
-		//initializeRepliesMap( valUpdMsgFromGNS );
-		
 		if( ContextServiceConfig.triggerEnabled )
 		{
 			toBeRemovedMap = new HashMap<String, GroupGUIDInfoClass>();
 			toBeAddedMap = new HashMap<String, GroupGUIDInfoClass>();
+		}
+		
+		if(ContextServiceConfig.PROFILER_ENABLED)
+		{
+			updateStat = new UpdateStats();
 		}
 	}
 	
@@ -174,160 +158,11 @@ public class UpdateInfo
 	{
 		totalExpectedValueUpdateReplies = numberOfExpectedReplies;
 	}
-}
-
-//private void initializeSubspaceEntry( int subspaceId, int replicaNum )
-//{
-//	valueUpdateRepliesMap.put(subspaceId+"-"+replicaNum, 0);
-//}
-
-/*private void initializeRepliesMap( ValueUpdateFromGNS valUpdMsgFromGNS )
-{
-	int privacySchemeOrdinal = valUpdMsgFromGNS.getPrivacySchemeOrdinal();
 	
-	// initialize updates
-	if( subspaceInfoMap != null )
+	public UpdateStats getUpdateStats()
 	{
-		if( privacySchemeOrdinal == PrivacySchemes.NO_PRIVACY.ordinal() )
-		{
-			// In no privacy case an update goes to all replicas of all subspaces.
-			// So we initialize the map accordingly.
-			
-			Iterator<Integer> keyIter = subspaceInfoMap.keySet().iterator();
-			
-			while( keyIter.hasNext() )
-			{
-				int subspaceId = keyIter.next();
-				Vector<SubspaceInfo> replicaVector = subspaceInfoMap.get(subspaceId);
-				
-				for( int i=0; i<replicaVector.size(); i++ )
-				{
-					SubspaceInfo currSubspaceReplica = replicaVector.get(i);
-					this.initializeSubspaceEntry(subspaceId, currSubspaceReplica.getReplicaNum());
-				}
-			}
-			
-		}
-		else if( privacySchemeOrdinal == PrivacySchemes.HYPERSPACE_PRIVACY.ordinal() )
-		{
-			// In Hyperspace privacy scheme, an update for an anonymized ID goes to subspaces 
-			// whose attributes have a
-			// non-zero overlap with the attribute set of the anonymized ID.
-			
-			JSONArray anonymizedIDAttrSet = valUpdMsgFromGNS.getAttrSetArray();
-			
-			assert( anonymizedIDAttrSet != null );
-			assert( anonymizedIDAttrSet.length() > 0 );
-			
-			List<Integer> overlapSubspaceList = getOverlappingSubsapceIds
-					( subspaceInfoMap, anonymizedIDAttrSet );
-			
-			
-			for( int i=0; i < overlapSubspaceList.size(); i++ )
-			{	
-				int subspaceId = overlapSubspaceList.get(i);
-				
-				Vector<SubspaceInfo> replicaVector = subspaceInfoMap.get(subspaceId);
-				
-				for( int j=0; j<replicaVector.size(); j++ )
-				{
-					SubspaceInfo currSubspaceReplica = replicaVector.get(j);
-					this.initializeSubspaceEntry(subspaceId, currSubspaceReplica.getReplicaNum());
-				}
-			}
-			
-		}
-		else if( privacySchemeOrdinal == PrivacySchemes.SUBSPACE_PRIVACY.ordinal() )
-		{
-			JSONArray anonymizedIDAttrSet = valUpdMsgFromGNS.getAttrSetArray();
-			
-			assert( anonymizedIDAttrSet != null );
-			assert( anonymizedIDAttrSet.length() > 0 );
-			
-			List<Integer> overlapSubspaceList = getOverlappingSubsapceIds
-					( subspaceInfoMap, anonymizedIDAttrSet );
-			
-			// if update consists of 1 attribute then the anonymized ID's attribute
-			// set should definitely be in one subsapce.
-			if(valUpdMsgFromGNS.getAttrValuePairs().length() == 1)
-			{
-				assert(overlapSubspaceList.size() == 1);
-			}
-			
-			
-			for( int i=0; i < overlapSubspaceList.size(); i++ )
-			{	
-				int subspaceId = overlapSubspaceList.get(i);
-				
-				Vector<SubspaceInfo> replicaVector = subspaceInfoMap.get(subspaceId);
-				
-				for( int j=0; j<replicaVector.size(); j++ )
-				{
-					SubspaceInfo currSubspaceReplica = replicaVector.get(j);
-					this.initializeSubspaceEntry(subspaceId, currSubspaceReplica.getReplicaNum());
-				}
-			}
-			
-		}
+		return this.updateStat;
 	}
-	else
-	{
-		if(ContextServiceConfig.QUERY_ALL_ENABLED)
-		{
-			// in query all update is processed locally.
-		}
-		else
-		{
-			assert(false);
-		}
-	}
-}*/
-
-
-/*private List<Integer> getOverlappingSubsapceIds( HashMap<Integer, Vector<SubspaceInfo>> 
-subspaceInfoMap, JSONArray anonymizedIDAttrSet )
-{
-List<Integer> subspaceIdList = new LinkedList<Integer>();
-
-Iterator<Integer> keyIter = subspaceInfoMap.keySet().iterator();
-
-while( keyIter.hasNext() )
-{
-int subspaceId = keyIter.next();
-Vector<SubspaceInfo> replicaVector = subspaceInfoMap.get(subspaceId);
-
-SubspaceInfo currSubspaceReplica = replicaVector.get(0);
-
-HashMap<String, AttributePartitionInfo> attrSubspace = 
-						currSubspaceReplica.getAttributesOfSubspace();
-
-boolean subspaceOverlaps = false;
-
-for( int i=0; i < anonymizedIDAttrSet.length(); i++ )
-{
-	try 
-	{
-		String attrName = anonymizedIDAttrSet.getString(i);
-		
-		if( attrSubspace.containsKey(attrName) )
-		{
-			subspaceOverlaps = true;
-			break;
-		}
-	}
-	catch (JSONException e) 
-	{
-		e.printStackTrace();
-	}
+	
+	
 }
-
-if( subspaceOverlaps )
-{
-	subspaceIdList.add(subspaceId);
-}
-}
-
-assert(subspaceIdList.size() > 0);
-
-return subspaceIdList;
-}*/

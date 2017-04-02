@@ -1,29 +1,20 @@
 package edu.umass.cs.contextservice.profilers;
 
-import edu.umass.cs.contextservice.logging.ContextServiceLogger;
 
 public class ProfilerStatClass implements Runnable
-{
-	private long numNodesForSearchQuery 			= 0;
-	private long numSearchReqs 						= 0;
-	
-	private long numNodesForUpdateReqs				= 0;
-	private long numUpdateReqs 						= 0;
-	
+{		
 	private long incomingUpdateRate					= 0;
-	
-	
-	private long incomingORate						= 0;
-	private long incomingDRate						= 0;
-	
 	private long incomingSearchRate					= 0;
 	
-	private long numSearchInAttrIndex				= 0;
-	private long numUpdateInAttrIndex				= 0;
+	// indicates the time from when the CNS receives a search query to when it sends a reply
+	// back to the client.
+	private long sumCNSSearchTime					= 0;
+	private long numSearchReqs 						= 0;
 	
-	private long sumAttrIndexTime					= 0;
-	
-	private long sumRegionMapTime					= 0;
+	// indicates the time from when the CNS receives a update request to when it sends a reply
+	// back to the client.
+	private long sumCNSUpdateTime					= 0;
+	private long numUpdateReqs 						= 0;
 	
 	private final Object lock 						= new Object();
 	
@@ -41,116 +32,56 @@ public class ProfilerStatClass implements Runnable
 				e.printStackTrace();
 			}
 			
-			if( (numSearchReqs > 0) && (numSearchInAttrIndex > 0))
+			if( (numSearchReqs > 0) )
 			{	
-				System.out.println("numNodesForSearchQuery "
-						+ (numNodesForSearchQuery/numSearchReqs)
-						+ " numSearchReqs "+numSearchReqs +" avgregionmaptime "
-						+ (sumRegionMapTime/numSearchReqs) 
-						+ " numSearchInAttrIndex "+numSearchInAttrIndex
-						+ " search index time "
-						+ (sumAttrIndexTime/numSearchInAttrIndex));
+				System.out.println("numSearchReqs "+numSearchReqs 
+									+ " average search resp time "
+									+(sumCNSSearchTime/numSearchReqs));
 			}
 			
 			if( (numUpdateReqs > 0) )
 			{	
-				System.out.println("numNodesForUpdateReqs "
-						+ (numNodesForUpdateReqs/numUpdateReqs)
-						+ " numUpdateReqs "+numUpdateReqs );
+				System.out.println("numUpdateReqs "+numUpdateReqs 
+								+" average update resp time "
+								+(sumCNSUpdateTime/numUpdateReqs));
 			}
 			
-//			System.out.println("numSearchInAttrIndex "+numSearchInAttrIndex
-//					+" numUpdateInAttrIndex "+numUpdateInAttrIndex);
+			double updrate = (incomingUpdateRate*1.0)/10.0;
+			double searchrate = (incomingSearchRate*1.0)/10.0;
 			
-			double rate = (incomingUpdateRate*1.0)/10.0;
-			
-			System.out.println("Incoming update rate "+rate+" requests/s");
-			
-			double OutsearchDataThrouhgput  = 0.0;
-			double OutsearchIndexThrouhgput = 0.0;
-			
-			double InsearchDataThrouhgput  = 0.0;
-			double InsearchIndexThrouhgput = 0.0;
-			
-			double incomingSRate = 0.0;
+			System.out.println("Incoming update rate "+updrate+" requests/s"
+								+ " search rate "+searchrate);
 			
 			synchronized(lock)
-			{	
-				InsearchDataThrouhgput = (incomingDRate*1.0)/5.0;
-				InsearchIndexThrouhgput = (incomingORate*1.0)/5.0;
-				incomingDRate = 0;
-				incomingORate = 0;
-				
-				incomingSRate = (incomingSearchRate*1.0)/5.0;
+			{
 				incomingSearchRate = 0;
 				incomingUpdateRate = 0;
 			}
 			
-			ContextServiceLogger.getLogger().fine("OutsearchDataThrouhgput "+OutsearchDataThrouhgput
-					+ " OutsearchIndexThrouhgput "+OutsearchIndexThrouhgput
-					+ " InsearchDataThrouhgput "+InsearchDataThrouhgput
-					+ " InsearchIndexThrouhgput "+InsearchIndexThrouhgput
-					+ " incomingSRate "+incomingSRate);
 		}
 	}
 	
-	public void incrementNumSearches(int currNumNodes, long regionMapTime)
+	public void addUpdateStats(UpdateStats updateStat)
 	{
-		synchronized(lock)
+		synchronized( lock )
 		{
-			numNodesForSearchQuery = numNodesForSearchQuery + currNumNodes;
-			numSearchReqs++;
-			sumRegionMapTime = sumRegionMapTime +regionMapTime;
-		}
-	}
-	
-	
-	
-	public void incrementNumSearchesAttrIndex(long time)
-	{
-		synchronized(lock)
-		{
-			this.numSearchInAttrIndex++;
-			sumAttrIndexTime = sumAttrIndexTime + time;
-		}
-	}
-	
-	public void incrementNumUpdatesAttrIndex()
-	{
-		synchronized(lock)
-		{
-			this.numUpdateInAttrIndex++;
-		}
-	}
-	
-	
-	public void incrementNumUpdates(int currNumNodes)
-	{
-		synchronized(lock)
-		{
-			numNodesForUpdateReqs = numNodesForUpdateReqs + currNumNodes;
+			sumCNSUpdateTime = sumCNSUpdateTime + updateStat.getTotalCNSTime();
 			numUpdateReqs++;
 		}
 	}
 	
-	
-	public void incrementIncomingForOverlap()
+	public void addSearchStats(SearchStats searchStat)
 	{
 		synchronized( lock )
 		{
-			incomingORate++;
+			sumCNSSearchTime = sumCNSSearchTime + searchStat.getTotalCNSTime();
+			numSearchReqs++;
 		}
 	}
 	
-	
-	public void incrementIncomingForData()
-	{
-		synchronized( lock )
-		{
-			incomingDRate++;
-		}
-	}
-	
+	/**
+	 * Keeps track of the incoming search rate at the current node.
+	 */
 	public void incrementIncomingSearchRate()
 	{
 		synchronized( lock )
@@ -159,7 +90,9 @@ public class ProfilerStatClass implements Runnable
 		}
 	}
 	
-	
+	/**
+	 * Keeps track of the incoming update rate at the node.
+	 */
 	public void incrementIncomingUpdateRate()
 	{
 		synchronized( lock )
@@ -167,4 +100,64 @@ public class ProfilerStatClass implements Runnable
 			incomingUpdateRate++;
 		}
 	}
+	
+	public void addSearchQueryProcessTime(long timeTaken, int resultSizePerNode)
+	{
+	}
 }
+
+// TO be deleted
+/*public void incrementNumSearches(int currNumNodes, long regionMapTime)
+{
+	synchronized(lock)
+	{
+		numNodesForSearchQuery = numNodesForSearchQuery + currNumNodes;
+		numSearchReqs++;
+		sumRegionMapTime = sumRegionMapTime +regionMapTime;
+	}
+}
+
+public void incrementNumSearchesAttrIndex(long time)
+{
+	synchronized(lock)
+	{
+		this.numSearchInAttrIndex++;
+		sumAttrIndexTime = sumAttrIndexTime + time;
+	}
+}
+
+public void incrementNumUpdatesAttrIndex(long time)
+{
+	synchronized(lock)
+	{
+		this.numUpdateInAttrIndex++;
+	}
+}
+
+
+public void incrementNumUpdates(int currNumNodes)
+{
+	synchronized(lock)
+	{
+		numNodesForUpdateReqs = numNodesForUpdateReqs + currNumNodes;
+		numUpdateReqs++;
+	}
+}
+
+
+public void incrementIncomingForOverlap()
+{
+	synchronized( lock )
+	{
+		incomingORate++;
+	}
+}
+
+
+public void incrementIncomingForData()
+{
+	synchronized( lock )
+	{
+		incomingDRate++;
+	}
+}*/

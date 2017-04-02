@@ -137,13 +137,7 @@ public class MySQLDataSource extends AbstractDataSource
 
     public Connection getConnection(DB_REQUEST_TYPE dbReqType) throws SQLException 
     {
-    	long start = System.currentTimeMillis();
     	Connection conn = this.dataSource.getConnection();
-    	if(ContextServiceConfig.DEBUG_MODE)
-    	{
-    		System.out.println("TIME_DEBUG getConnection "
-    							+(System.currentTimeMillis()-start));	
-    	}
         return conn;
     }
     

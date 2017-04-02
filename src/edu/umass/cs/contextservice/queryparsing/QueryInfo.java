@@ -5,11 +5,12 @@ import java.util.List;
 
 import edu.umass.cs.contextservice.config.ContextServiceConfig;
 import edu.umass.cs.contextservice.messages.QueryMesgToSubspaceRegionReply;
+import edu.umass.cs.contextservice.profilers.SearchStats;
 import edu.umass.cs.contextservice.regionmapper.helper.AttributeValueRange;
 import edu.umass.cs.contextservice.schemes.helperclasses.SearchReplyInfo;
 
 /**
- * Class to store the query related information, 
+ * Class to store pending query related information, 
  * like query, its source etc
  * @author ayadav
  */
@@ -46,6 +47,8 @@ public class QueryInfo
 	
 	private int numRepliesRecvsSoFar = 0;
 	
+	private SearchStats searchStat;
+	
 	public QueryInfo( String query, 
 			Integer sourceNodeId, String grpGUID, long userReqID, 
 			String userIP, int userPort, long expiryTime )
@@ -66,6 +69,11 @@ public class QueryInfo
 		
 		// query parsing
 		searchQueryAttrValRange = QueryParser.parseQuery(query);
+		
+		if(ContextServiceConfig.PROFILER_ENABLED)
+		{
+			searchStat = new SearchStats();
+		}
 	}
 	
 	
@@ -177,6 +185,11 @@ public class QueryInfo
 				return false;
 			}
 		}
+	}
+	
+	public SearchStats getSearchStats()
+	{
+		return searchStat;
 	}
 	
 	/**
