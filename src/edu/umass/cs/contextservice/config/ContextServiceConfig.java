@@ -40,7 +40,7 @@ public class ContextServiceConfig
 	// a search and update requests will be profiled
 	// profiler is light-weight, doesn't have any significant reduction in the CNS capacity
 	// as only average stats are reported every 10 s. 
-	public static final boolean PROFILER_ENABLED					= true;
+	public static final boolean PROFILER_ENABLED					= false;
 	
 	// config files
 	

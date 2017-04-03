@@ -244,10 +244,10 @@ public class GUIDAttrValueProcessing
 					+ myID +" to node "+new InetSocketAddress(queryInfo.getUserIP(), queryInfo.getUserPort()));
 
 			QueryInfo qInfo = pendingQueryRequests.remove(requestId);
-			qInfo.getSearchStats().setQueryEndTime();
 			
 			if(ContextServiceConfig.PROFILER_ENABLED)
 			{
+				qInfo.getSearchStats().setQueryEndTime();
 				profStats.addSearchStats(qInfo.getSearchStats());
 			}
 		}

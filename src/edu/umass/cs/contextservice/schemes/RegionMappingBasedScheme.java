@@ -689,10 +689,12 @@ public class RegionMappingBasedScheme extends AbstractScheme
 			if(removedUpdate != null)
 			{
 				startANewUpdate(removedUpdate, requestID);
-				removedUpdate.getUpdateStats().setUpdateFinishTime();
 				
 				if(ContextServiceConfig.PROFILER_ENABLED)
+				{
+					removedUpdate.getUpdateStats().setUpdateFinishTime();
 					profStats.addUpdateStats(removedUpdate.getUpdateStats());
+				}
 			}
 		}
 	}
