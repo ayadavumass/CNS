@@ -440,7 +440,6 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 		
 		try
 		{
-			myConn = this.dataSource.getConnection();
 			stmt = myConn.createStatement();
 			ResultSet rs = stmt.executeQuery(selectQuery);
 			
@@ -1063,7 +1062,6 @@ public class SQLGUIDStorage implements GUIDStorageInterface
             
 	        updateSqlQuery = updateSqlQuery + " WHERE nodeGUID = X'"+nodeGUID+"'";
             
-            myConn = this.dataSource.getConnection();
             stmt = myConn.createStatement();
             
         	// if update fails then insert
@@ -1188,8 +1186,7 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 			}
 			
 			insertQuery = insertQuery +" , X'"+nodeGUID+"' )";
-    		
-    		myConn = this.dataSource.getConnection();
+			
             stmt = myConn.createStatement();  
             
     		ContextServiceLogger.getLogger().fine(this.myNodeID+" EXECUTING INSERT "+insertQuery);
