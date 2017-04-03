@@ -14,7 +14,6 @@ import edu.umass.cs.contextservice.attributeInfo.AttributeTypes;
 import edu.umass.cs.contextservice.config.ContextServiceConfig;
 import edu.umass.cs.contextservice.config.ContextServiceConfig.SQL_DB_TYPE;
 import edu.umass.cs.contextservice.database.datasource.AbstractDataSource;
-import edu.umass.cs.contextservice.database.datasource.AbstractDataSource.DB_REQUEST_TYPE;
 import edu.umass.cs.contextservice.regionmapper.helper.AttributeValueRange;
 import edu.umass.cs.contextservice.regionmapper.helper.RegionInfo;
 
@@ -39,7 +38,7 @@ public class SQLRegionMappingStorage extends AbstractRegionMappingStorage
 		
 		try
 		{
-			myConn = dataSource.getConnection(DB_REQUEST_TYPE.UPDATE);
+			myConn = dataSource.getConnection();
 			stmt   = myConn.createStatement();
 			
 			String tableName = ContextServiceConfig.REGION_INFO_TABLE_NAME;
@@ -195,7 +194,7 @@ public class SQLRegionMappingStorage extends AbstractRegionMappingStorage
 		
 		try
 		{
-			myConn = this.dataSource.getConnection(DB_REQUEST_TYPE.SELECT);
+			myConn = this.dataSource.getConnection();
 			stmt = myConn.createStatement();
 			
 			ResultSet rs = stmt.executeQuery(selectTableSQL);
@@ -273,7 +272,7 @@ public class SQLRegionMappingStorage extends AbstractRegionMappingStorage
 		
 		try
 		{
-			myConn = this.dataSource.getConnection(DB_REQUEST_TYPE.SELECT);
+			myConn = this.dataSource.getConnection();
 			stmt = myConn.createStatement();
 			
 			ResultSet rs = stmt.executeQuery(selectTableSQL);
@@ -360,7 +359,7 @@ public class SQLRegionMappingStorage extends AbstractRegionMappingStorage
 		
 		try
 		{
-			myConn = this.dataSource.getConnection(DB_REQUEST_TYPE.UPDATE);
+			myConn = this.dataSource.getConnection();
 			stmt = myConn.createStatement();
 
 			// execute insert SQL stetement

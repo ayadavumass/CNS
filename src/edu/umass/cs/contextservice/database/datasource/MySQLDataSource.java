@@ -87,7 +87,7 @@ public class MySQLDataSource extends AbstractDataSource
         		+ "max pool size "+dataSource.getMaxPoolSize());
     }
 
-    public Connection getConnection(DB_REQUEST_TYPE dbReqType) throws SQLException 
+    public Connection getConnection() throws SQLException 
     {
     	long start = System.currentTimeMillis();
     	Connection conn = this.dataSource.getConnection();

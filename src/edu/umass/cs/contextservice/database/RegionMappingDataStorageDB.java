@@ -1,6 +1,7 @@
 package edu.umass.cs.contextservice.database;
 
 import java.net.UnknownHostException;
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.HashMap;
 
@@ -65,10 +66,13 @@ public class RegionMappingDataStorageDB extends AbstractDataStorageDB
 	
 	private final CNSProfiler cnsprofiler;
 	
+	private AbstractDataSource dataSource;
+	
 	public RegionMappingDataStorageDB( Integer myNodeID, 
 			AbstractDataSource abstractDataSource, CNSProfiler cnsProfiler)
 			throws Exception
 	{	
+		this.dataSource = abstractDataSource;
 		this.cnsprofiler = cnsProfiler;
 		
 		guidAttributesStorage = new SQLGUIDStorage
@@ -88,6 +92,10 @@ public class RegionMappingDataStorageDB extends AbstractDataStorageDB
 		createTables();
 	}
 	
+	public AbstractDataSource getDataSource()
+	{
+		return this.dataSource;
+	}
 	
 	public GUIDStorageInterface getGUIDStorageInterface()
 	{
@@ -133,10 +141,10 @@ public class RegionMappingDataStorageDB extends AbstractDataStorageDB
 		return resultSize;	
 	}
 	
-	public JSONObject getGUIDStoredUsingHashIndex( String guid )
+	public JSONObject getGUIDStoredUsingHashIndex( String guid, Connection myConn )
 	{
 		JSONObject valueJSON 
-						= this.guidAttributesStorage.getGUIDStoredUsingHashIndex(guid);
+						= this.guidAttributesStorage.getGUIDStoredUsingHashIndex(guid, myConn);
 		return valueJSON;
 	}
 	
@@ -182,10 +190,10 @@ public class RegionMappingDataStorageDB extends AbstractDataStorageDB
 	}
 	
 	public void storeGUIDUsingHashIndex( String nodeGUID, 
-    		JSONObject jsonToWrite, int updateOrInsert ) throws JSONException
+    		JSONObject jsonToWrite, int updateOrInsert, Connection myConn ) throws JSONException
 	{
 		this.guidAttributesStorage.storeGUIDUsingHashIndex
-			( nodeGUID, jsonToWrite, updateOrInsert);
+			( nodeGUID, jsonToWrite, updateOrInsert, myConn);
 	}
 	
 	/**

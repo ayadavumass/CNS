@@ -3,6 +3,8 @@ package edu.umass.cs.contextservice.schemes;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.concurrent.ExecutorService;
@@ -577,9 +579,28 @@ public class RegionMappingBasedScheme extends AbstractScheme
 		}
 		else
 		{
-			//String tableName = "primarySubspaceDataStorage";
-			JSONObject valueJSON= this.hyperspaceDB.getGUIDStoredUsingHashIndex(GUID);
-			
+			Connection myConn = null;
+			JSONObject valueJSON = null;
+			try
+			{
+				myConn = this.dataSource.getConnection();
+				valueJSON= this.hyperspaceDB.getGUIDStoredUsingHashIndex(GUID, myConn);
+			}
+			catch(SQLException sqlex)
+			{
+				sqlex.printStackTrace();
+			}
+			finally
+			{
+				if(myConn != null)
+				{
+					try {
+						myConn.close();
+					} catch (SQLException e) {
+						e.printStackTrace();
+					}
+				}
+			}
 			
 			GetReplyMessage getReplyMessage = new GetReplyMessage(this.getMyID(),
 					getMessage.getUserReqID(), GUID, valueJSON);

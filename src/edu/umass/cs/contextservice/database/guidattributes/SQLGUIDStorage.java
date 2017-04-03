@@ -21,7 +21,6 @@ import edu.umass.cs.contextservice.config.ContextServiceConfig;
 import edu.umass.cs.contextservice.config.ContextServiceConfig.SQL_DB_TYPE;
 import edu.umass.cs.contextservice.database.RegionMappingDataStorageDB;
 import edu.umass.cs.contextservice.database.datasource.AbstractDataSource;
-import edu.umass.cs.contextservice.database.datasource.AbstractDataSource.DB_REQUEST_TYPE;
 import edu.umass.cs.contextservice.logging.ContextServiceLogger;
 import edu.umass.cs.contextservice.messages.dataformat.SearchReplyGUIDRepresentationJSON;
 import edu.umass.cs.contextservice.profilers.CNSProfiler;
@@ -57,7 +56,7 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 		Statement  stmt    = null;	
 		try
 		{
-			myConn = dataSource.getConnection(DB_REQUEST_TYPE.UPDATE);
+			myConn = dataSource.getConnection();
 			stmt   = myConn.createStatement();
 			
 			String attrIndexTableCmd = getAttrIndexTableCreationCmd();
@@ -211,7 +210,7 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 		try
 		{
 			long s = System.currentTimeMillis();
-			myConn = this.dataSource.getConnection(DB_REQUEST_TYPE.SELECT);
+			myConn = this.dataSource.getConnection();
 			long e = System.currentTimeMillis();
 			// for row by row fetching, otherwise default is fetching whole result
 			// set in memory. 
@@ -324,7 +323,7 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 	}
 	
 	
-	public JSONObject getGUIDStoredUsingHashIndex( String guid )
+	/*public JSONObject getGUIDStoredUsingHashIndex( String guid )
 	{
 		long start = System.currentTimeMillis();
 		Connection myConn 		= null;
@@ -425,6 +424,106 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 		}
 		
 		return oldValueJSON;
+	}*/
+	
+	public JSONObject getGUIDStoredUsingHashIndex( String guid, Connection myConn )
+	{
+		long start = System.currentTimeMillis();
+		Statement stmt 			= null;
+		
+		String selectQuery 		= "SELECT * ";
+		String tableName 		= RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME;
+		
+		JSONObject oldValueJSON = new JSONObject();
+		
+		selectQuery = selectQuery + " FROM "+tableName+" WHERE nodeGUID = X'"+guid+"'";
+		
+		try
+		{
+			myConn = this.dataSource.getConnection();
+			stmt = myConn.createStatement();
+			ResultSet rs = stmt.executeQuery(selectQuery);
+			
+			while( rs.next() )
+			{
+				ResultSetMetaData rsmd = rs.getMetaData();
+				
+				int columnCount = rsmd.getColumnCount();
+				
+				// The column count starts from 1
+				for (int i = 1; i <= columnCount; i++ ) 
+				{
+					String colName = rsmd.getColumnName(i);
+					
+					// doing translation here saves multiple strng to JSON translations later in code.
+					if(colName.equals(RegionMappingDataStorageDB.anonymizedIDToGUIDMappingColName))
+					{
+						byte[] colValBA = rs.getBytes(colName);
+						
+						if(colValBA != null)
+						{
+							if(colValBA.length > 0)
+							{
+								try
+								{
+									JSONArray jsonArr 
+										= this.deserializeByteArrayToAnonymizedIDJSONArray(colValBA);
+									oldValueJSON.put(colName, jsonArr);
+								} catch (JSONException e) 
+								{
+									e.printStackTrace();
+								}
+							}
+						}
+					} else if(colName.equals(RegionMappingDataStorageDB.unsetAttrsColName))
+					{
+						String colVal = rs.getString(colName);
+						try
+						{
+							oldValueJSON.put(colName, new JSONObject(colVal));
+						} catch (JSONException e) 
+						{
+							e.printStackTrace();
+						}
+					}
+					else
+					{
+						String colVal = rs.getString(colName);
+						try
+						{
+							oldValueJSON.put(colName, colVal);
+						} catch (JSONException e) 
+						{
+							e.printStackTrace();
+						}
+					}
+				}
+			}
+			rs.close();
+		} catch (SQLException e)
+		{
+			e.printStackTrace();
+		} finally
+		{
+			try
+			{
+				if (stmt != null)
+					stmt.close();
+			}
+			catch(SQLException e)
+			{
+				e.printStackTrace();
+			}
+		}
+		
+		long end = System.currentTimeMillis();
+		
+		if(ContextServiceConfig.PROFILER_ENABLED)
+		{
+			cnsProfiler.addGetGUIDUsingHashIndexTime(end-start);
+		}
+		
+		return oldValueJSON;
 	}
 	
 	
@@ -438,18 +537,18 @@ public class SQLGUIDStorage implements GUIDStorageInterface
      * @throws JSONException
      */
     public void storeGUIDUsingHashIndex( String nodeGUID, 
-    		JSONObject jsonToWrite, int updateOrInsert ) throws JSONException
+    		JSONObject jsonToWrite, int updateOrInsert , Connection myConn) throws JSONException
     {
     	long start = System.currentTimeMillis();
     	if( updateOrInsert == RegionMappingDataStorageDB.INSERT_REC )
     	{
     		this.performStoreGUIDInPrimarySubspaceInsert
-    			(nodeGUID, jsonToWrite);
+    			(nodeGUID, jsonToWrite, myConn);
     	}
     	else if( updateOrInsert == RegionMappingDataStorageDB.UPDATE_REC )
     	{
     		this.performStoreGUIDInPrimarySubspaceUpdate
-    				(nodeGUID, jsonToWrite);
+    				(nodeGUID, jsonToWrite, myConn);
     	}
     	long end = System.currentTimeMillis();
     	
@@ -499,7 +598,7 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 		
 		try
 		{
-			myConn = this.dataSource.getConnection(DB_REQUEST_TYPE.UPDATE);
+			myConn = this.dataSource.getConnection();
 			stmt = myConn.createStatement();
 			stmt.executeUpdate(deleteCommand);
 		} catch(SQLException sqex)
@@ -732,7 +831,7 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 	        
 	        updateSqlQuery = updateSqlQuery + " WHERE nodeGUID = X'"+nodeGUID+"'";
             
-            myConn = this.dataSource.getConnection(DB_REQUEST_TYPE.UPDATE);
+            myConn = this.dataSource.getConnection();
             stmt = myConn.createStatement();
             
         	// if update fails then insert
@@ -850,7 +949,7 @@ public class SQLGUIDStorage implements GUIDStorageInterface
     		}
     		insertQuery = insertQuery +" , X'"+nodeGUID+"' )";
     		
-    		myConn = this.dataSource.getConnection(DB_REQUEST_TYPE.UPDATE);
+    		myConn = this.dataSource.getConnection();
             stmt = myConn.createStatement();  
             
     		ContextServiceLogger.getLogger().fine
@@ -889,14 +988,13 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 	 * @param atrToValueRep
 	 */
 	private void performStoreGUIDInPrimarySubspaceUpdate( String nodeGUID, 
-    		JSONObject jsonToWrite )
+    		JSONObject jsonToWrite, Connection myConn )
 	{
 		ContextServiceLogger.getLogger().fine(
 				"performStoreGUIDInPrimarySubspaceUpdate "
 				+ RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME
 				+ " nodeGUID "+nodeGUID);
 		
-        Connection myConn      		= null;
         Statement stmt         		= null;
         String tableName 			= RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME;
         
@@ -965,7 +1063,7 @@ public class SQLGUIDStorage implements GUIDStorageInterface
             
 	        updateSqlQuery = updateSqlQuery + " WHERE nodeGUID = X'"+nodeGUID+"'";
             
-            myConn = this.dataSource.getConnection(DB_REQUEST_TYPE.UPDATE);
+            myConn = this.dataSource.getConnection();
             stmt = myConn.createStatement();
             
         	// if update fails then insert
@@ -986,9 +1084,6 @@ public class SQLGUIDStorage implements GUIDStorageInterface
             {
                 if ( stmt != null )
                     stmt.close();
-                
-                if ( myConn != null )
-                    myConn.close();
             }
             catch( SQLException e )
             {
@@ -997,15 +1092,13 @@ public class SQLGUIDStorage implements GUIDStorageInterface
         }
 	}
 	
-	
 	@SuppressWarnings("unchecked")
 	private void performStoreGUIDInPrimarySubspaceInsert
-					( String nodeGUID, JSONObject jsonToWrite )
+					( String nodeGUID, JSONObject jsonToWrite , Connection myConn)
 	{
 		ContextServiceLogger.getLogger().fine("performStoreGUIDInPrimarySubspaceInsert "
 				+RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME+" nodeGUID "+nodeGUID );
-    	
-        Connection myConn          = null;
+		
         Statement stmt         	   = null;
         
         String tableName = RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME;
@@ -1096,7 +1189,7 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 			
 			insertQuery = insertQuery +" , X'"+nodeGUID+"' )";
     		
-    		myConn = this.dataSource.getConnection(DB_REQUEST_TYPE.UPDATE);
+    		myConn = this.dataSource.getConnection();
             stmt = myConn.createStatement();  
             
     		ContextServiceLogger.getLogger().fine(this.myNodeID+" EXECUTING INSERT "+insertQuery);
@@ -1116,9 +1209,6 @@ public class SQLGUIDStorage implements GUIDStorageInterface
             {
                 if ( stmt != null )
                     stmt.close();
-                
-                if ( myConn != null )
-                    myConn.close();
             }
             catch(SQLException e)
             {

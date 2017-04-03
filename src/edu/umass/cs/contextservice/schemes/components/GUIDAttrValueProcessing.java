@@ -2,6 +2,8 @@ package edu.umass.cs.contextservice.schemes.components;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -269,14 +271,17 @@ public class GUIDAttrValueProcessing
 								= updateReq.getValueUpdateFromGNS().getAnonymizedIDToGuidMapping();
 		
 		// get the old value and process the update in primary subspace and other subspaces.
+		Connection myConn = null;
 		
 		try
 		{
-			boolean firstTimeInsert = false;
+			boolean firstTimeInsert = false;	
+			
+			myConn = this.hyperspaceDB.getDataSource().getConnection();
 			
 			long start = System.currentTimeMillis();
 			JSONObject oldValueJSON 
-						 = this.hyperspaceDB.getGUIDStoredUsingHashIndex(GUID);
+						 = this.hyperspaceDB.getGUIDStoredUsingHashIndex(GUID, myConn);
 			long end = System.currentTimeMillis();
 			
 			if(ContextServiceConfig.PROFILER_ENABLED)
@@ -304,7 +309,8 @@ public class GUIDAttrValueProcessing
 			
 			start = System.currentTimeMillis();
 			this.hyperspaceDB.storeGUIDUsingHashIndex
-								(GUID, jsonToWrite, updateOrInsert);
+								(GUID, jsonToWrite, updateOrInsert, myConn);
+			
 			end = System.currentTimeMillis();
 			
 			if(ContextServiceConfig.PROFILER_ENABLED)
@@ -318,6 +324,23 @@ public class GUIDAttrValueProcessing
 		catch ( JSONException e )
 		{
 			e.printStackTrace();
+		} catch (SQLException e) 
+		{
+			e.printStackTrace();
+		}
+		finally
+		{
+			if(myConn != null)
+			{
+				try 
+				{
+					myConn.close();
+				} 
+				catch (SQLException e) 
+				{
+					e.printStackTrace();
+				}
+			}
 		}
 	}
 	
