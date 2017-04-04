@@ -64,7 +64,7 @@ public class ContextServiceConfig
 	// default mysql select semantics is used which fetches all
 	// results in memory on a select, but on large result sizes can cause
 	// memory overflow.
-	public static final boolean ROW_BY_ROW_FETCHING_ENABLED			= true;
+	public static final boolean ROW_BY_ROW_FETCHING_ENABLED			= false;
 	
 	
 	// fetches only count of the result, select query is count(GUID)
