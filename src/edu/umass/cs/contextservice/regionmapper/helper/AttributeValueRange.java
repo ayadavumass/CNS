@@ -33,4 +33,9 @@ public class AttributeValueRange
 	{
 		this.upperBound = upperBound;
 	}
+	
+	public String toString()
+	{
+		return "["+this.lowerBound+","+this.upperBound+"]";
+	}
 }
