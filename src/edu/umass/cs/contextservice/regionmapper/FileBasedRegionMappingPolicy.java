@@ -122,12 +122,14 @@ public class FileBasedRegionMappingPolicy extends AbstractRegionMappingPolicy
 			overlapNodeIds.add(nodeIdIter.next());
 		}
 		
-		assert(overlapNodeIds.size() >= 1);
 		// TODO; move to severe log
 		if(overlapNodeIds.size() < 1)
 		{
 			System.out.println("Overlap region size 0 "+attrValRangeMap.toString());
 		}
+				
+		assert(overlapNodeIds.size() >= 1);
+		
 		return overlapNodeIds;
 	}
 	
