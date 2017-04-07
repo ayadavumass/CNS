@@ -303,6 +303,7 @@ public class RegionMappingBasedScheme extends AbstractScheme
 		return null;
 	}
 	
+	
 	private void processQueryMsgFromUser
 		( QueryMsgFromUser queryMsgFromUser )
 	{
@@ -405,6 +406,7 @@ public class RegionMappingBasedScheme extends AbstractScheme
 		guidAttrValProcessing.processQueryMsgFromUser
 										(currReq, storeQueryForTrigger);
 	}
+	
 	
 	private void processValueUpdateFromGNS( ValueUpdateFromGNS valueUpdateFromGNS )
 	{

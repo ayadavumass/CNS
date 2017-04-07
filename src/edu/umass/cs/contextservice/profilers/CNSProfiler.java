@@ -1,6 +1,5 @@
 package edu.umass.cs.contextservice.profilers;
 
-
 public class CNSProfiler implements Runnable
 {
 	private long incomingUpdateRate					= 0;
@@ -10,6 +9,11 @@ public class CNSProfiler implements Runnable
 	// back to the client.
 	private long sumCNSSearchTime					= 0;
 	private long numSearchReqs 						= 0;
+	
+	// for storing the sum of the number of nodes where the CNS processes 
+	//  search queries.
+	private long sumSearchNodes						= 0;
+	
 	
 	// indicates the time from when the CNS receives a update request to when it sends a reply
 	// back to the client.
@@ -50,7 +54,9 @@ public class CNSProfiler implements Runnable
 			{	
 				System.out.println("numSearchReqs "+numSearchReqs 
 									+ " average search resp time "
-									+(sumCNSSearchTime/numSearchReqs));
+									+ (sumCNSSearchTime/numSearchReqs)
+									+ " avg num nodes "
+									+ (sumSearchNodes/numSearchReqs));
 			}
 			
 			if( (numUpdateReqs > 0) )
@@ -85,8 +91,7 @@ public class CNSProfiler implements Runnable
 			{
 				incomingSearchRate = 0;
 				incomingUpdateRate = 0;
-			}
-			
+			}		
 		}
 	}
 	
@@ -99,14 +104,17 @@ public class CNSProfiler implements Runnable
 		}
 	}
 	
+	
 	public void addSearchStats(SearchStats searchStat)
 	{
 		synchronized( lock )
 		{
 			sumCNSSearchTime = sumCNSSearchTime + searchStat.getTotalCNSTime();
+			sumSearchNodes = sumSearchNodes + searchStat.getNumNodesProcessing();
 			numSearchReqs++;
 		}
 	}
+	
 	
 	/**
 	 * Keeps track of the incoming search rate at the current node.

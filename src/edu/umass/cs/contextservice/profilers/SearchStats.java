@@ -11,7 +11,6 @@ public class SearchStats
 	// arrived and the response was sent. Time is in ms.
 	private long totalCNSTime;
 		
-		
 	// stores the time to determine which regions/nodes this update request should 
 	// go to. Time is in ms.
 	private long totalRegionCompTime;
@@ -19,14 +18,12 @@ public class SearchStats
 	// timestamp when the search query arrived at the CNS.
 	private long queryStartTime ;
 	
-	
 	private int numNodesForProcessing;
 	
 	public SearchStats()
 	{
 		queryStartTime = System.currentTimeMillis();
 	}
-	
 	
 	public void setNodeInfoAndTime(int numNodes, long totalRegionCompTime)
 	{
@@ -42,5 +39,15 @@ public class SearchStats
 	public long getTotalCNSTime()
 	{
 		return totalCNSTime;
+	}
+	
+	public int getNumNodesProcessing()
+	{
+		return numNodesForProcessing;
+	}
+	
+	public long getRegionMappingCompTime()
+	{
+		return totalRegionCompTime;
 	}
 }
