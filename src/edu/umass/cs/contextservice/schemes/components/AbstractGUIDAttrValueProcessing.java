@@ -21,7 +21,7 @@ import edu.umass.cs.contextservice.logging.ContextServiceLogger;
 import edu.umass.cs.contextservice.messages.QueryMesgToSubspaceRegion;
 import edu.umass.cs.contextservice.messages.QueryMesgToSubspaceRegionReply;
 import edu.umass.cs.contextservice.messages.ValueUpdateToSubspaceRegionMessage;
-import edu.umass.cs.contextservice.profilers.ProfilerStatClass;
+import edu.umass.cs.contextservice.profilers.CNSProfiler;
 import edu.umass.cs.contextservice.queryparsing.QueryInfo;
 import edu.umass.cs.contextservice.regionmapper.AbstractRegionMappingPolicy;
 import edu.umass.cs.contextservice.regionmapper.helper.AttributeValueRange;
@@ -50,7 +50,7 @@ public abstract class AbstractGUIDAttrValueProcessing
 	
 	protected long queryIdCounter										= 0;
 	
-	protected final ProfilerStatClass profStats;
+	protected final CNSProfiler profStats;
 	
 	protected final Random defaultAttrValGenerator;
 	
@@ -59,7 +59,7 @@ public abstract class AbstractGUIDAttrValueProcessing
 			AbstractRegionMappingPolicy regionMappingPolicy, 
 			AbstractDataStorageDB hyperspaceDB, JSONMessenger<Integer> messenger , 
 		ConcurrentHashMap<Long, QueryInfo> pendingQueryRequests, 
-		ProfilerStatClass profStats )
+		CNSProfiler profStats )
 	{
 		this.myID = myID;
 		this.regionMappingPolicy = regionMappingPolicy;
@@ -215,11 +215,6 @@ public abstract class AbstractGUIDAttrValueProcessing
 		int totalExpectedUpdateReplies = addNodesMap.size() + removeNodesMap.size() + updateNodesMap.size();
 		
 		updateReq.setNumberOfExpectedReplies(totalExpectedUpdateReplies);
-		
-		if(ContextServiceConfig.PROFILER_THREAD)
-		{
-			profStats.incrementNumUpdates(totalExpectedUpdateReplies);
-		}
 		
 		
 		JSONObject unsetAttrsJSON = primarySubspaceJSON.getJSONObject
@@ -393,15 +388,17 @@ public abstract class AbstractGUIDAttrValueProcessing
 			newValSpace.getValueSpaceBoundary().put(attrName, attrValRange);
 		}
 		
+		long start = System.currentTimeMillis();
 		List<Integer> newNodeList 
 					= regionMappingPolicy.getNodeIDsForUpdate
 						(GUID, newValSpace.getValueSpaceBoundary());
+		long end = System.currentTimeMillis();
 		
 		updateReq.setNumberOfExpectedReplies(newNodeList.size());
 		
-		if(ContextServiceConfig.PROFILER_THREAD)
+		if(ContextServiceConfig.PROFILER_ENABLED)
 		{
-			profStats.incrementNumUpdates(newNodeList.size());
+			updateReq.getUpdateStats().setRegionCompTime(end-start);
 		}
 	
 		// compute the JSONToWrite
@@ -582,8 +579,6 @@ public abstract class AbstractGUIDAttrValueProcessing
 		int operType 			= valueUpdateToSubspaceRegionMessage.getOperType();
 		boolean firstTimeInsert = valueUpdateToSubspaceRegionMessage.getFirstTimeInsert();
 		
-		long udpateStartTime 	= valueUpdateToSubspaceRegionMessage.getUpdateStartTime();
-		
 		String tableName 		= RegionMappingDataStorageDB.ATTR_INDEX_TABLE_NAME;
 		
 		try 
@@ -624,13 +619,6 @@ public abstract class AbstractGUIDAttrValueProcessing
 					}
 					break;
 				}
-			}
-			
-			if(ContextServiceConfig.DEBUG_MODE)
-			{
-				long now = System.currentTimeMillis();
-				System.out.println("processValueUpdateToSubspaceRegionMessage completes "
-						+(now-udpateStartTime));
 			}
 		} catch (JSONException e)
 		{

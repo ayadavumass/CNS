@@ -21,9 +21,9 @@ import edu.umass.cs.contextservice.config.ContextServiceConfig;
 import edu.umass.cs.contextservice.config.ContextServiceConfig.SQL_DB_TYPE;
 import edu.umass.cs.contextservice.database.RegionMappingDataStorageDB;
 import edu.umass.cs.contextservice.database.datasource.AbstractDataSource;
-import edu.umass.cs.contextservice.database.datasource.AbstractDataSource.DB_REQUEST_TYPE;
 import edu.umass.cs.contextservice.logging.ContextServiceLogger;
 import edu.umass.cs.contextservice.messages.dataformat.SearchReplyGUIDRepresentationJSON;
+import edu.umass.cs.contextservice.profilers.CNSProfiler;
 import edu.umass.cs.contextservice.regionmapper.helper.AttributeValueRange;
 import edu.umass.cs.contextservice.utils.Utils;
 
@@ -36,14 +36,18 @@ import edu.umass.cs.contextservice.utils.Utils;
 public class SQLGUIDStorage implements GUIDStorageInterface
 {
 	private final int myNodeID;
-	//private final HashMap<Integer, Vector<SubspaceInfo>> subspaceInfoMap;
-	private final AbstractDataSource dataSource;
 	
-	public SQLGUIDStorage( int myNodeID, AbstractDataSource dataSource )
+	private final AbstractDataSource dataSource;
+	private final CNSProfiler cnsProfiler;
+	
+	public SQLGUIDStorage( int myNodeID, AbstractDataSource dataSource ,
+			CNSProfiler cnsProfiler )
 	{
 		this.myNodeID = myNodeID;
 		this.dataSource = dataSource;
+		this.cnsProfiler = cnsProfiler;
 	}
+	
 	
 	@Override
 	public void createDataStorageTables() 
@@ -52,7 +56,7 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 		Statement  stmt    = null;	
 		try
 		{
-			myConn = dataSource.getConnection(DB_REQUEST_TYPE.UPDATE);
+			myConn = dataSource.getConnection();
 			stmt   = myConn.createStatement();
 			
 			String attrIndexTableCmd = getAttrIndexTableCreationCmd();
@@ -91,12 +95,12 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 	{
 		String tableName = RegionMappingDataStorageDB.ATTR_INDEX_TABLE_NAME;
 		
-		String newTableCommand = "create table "+tableName+" ( "
+		String newTableCommand = "create table IF NOT EXISTS "+tableName+" ( "
 			      + " nodeGUID Binary(20) PRIMARY KEY";
 		
 		newTableCommand = getDataStorageString(newTableCommand);
 		
-		if(ContextServiceConfig.PRIVACY_ENABLED)
+		if(ContextServiceConfig.privacyEnabled)
 		{
 			newTableCommand = getPrivacyStorageString(newTableCommand);
 			// row format dynamic because we want TEXT columns to be stored completely off the row, 
@@ -110,7 +114,7 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 			}
 			else
 			{
-				if(!ContextServiceConfig.IN_MEMORY_MYSQL)
+				if(!ContextServiceConfig.inMemoryMySQL)
 				{
 					newTableCommand = newTableCommand +" ) ROW_FORMAT=DYNAMIC DEFAULT CHARSET=latin1";
 				}
@@ -126,7 +130,7 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 		}
 		
 		if( (ContextServiceConfig.sqlDBType == SQL_DB_TYPE.MYSQL) 
-								&& (ContextServiceConfig.IN_MEMORY_MYSQL) )
+								&& (ContextServiceConfig.inMemoryMySQL) )
 		{
 			newTableCommand = newTableCommand +" ENGINE = MEMORY";
 		}
@@ -135,10 +139,11 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 		return newTableCommand;
 	}
 	
+	
 	public String getHashIndexTableCreationCmd()
 	{
 		String tableName = RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME;
-		String newTableCommand = "create table "+tableName+" ( "
+		String newTableCommand = "create table IF NOT EXISTS "+tableName+" ( "
 			      + " nodeGUID Binary(20) PRIMARY KEY";
 		
 		newTableCommand = getDataStorageString(newTableCommand);
@@ -152,7 +157,7 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 					+emptyJSON.toString()+"'";
 		
 		
-		if( ContextServiceConfig.PRIVACY_ENABLED )
+		if( ContextServiceConfig.privacyEnabled )
 		{
 			newTableCommand = getPrivacyStorageString(newTableCommand);
 			//newTableCommand	= getPrivacyStorageString(newTableCommand);
@@ -166,7 +171,7 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 			}
 			else
 			{
-				if(!ContextServiceConfig.IN_MEMORY_MYSQL)
+				if(!ContextServiceConfig.inMemoryMySQL)
 				{
 					newTableCommand = newTableCommand +" ) ROW_FORMAT=DYNAMIC DEFAULT CHARSET=latin1";
 				}
@@ -182,7 +187,7 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 		}
 		
 		if( (ContextServiceConfig.sqlDBType == SQL_DB_TYPE.MYSQL) 
-				&& (ContextServiceConfig.IN_MEMORY_MYSQL) )
+				&& (ContextServiceConfig.inMemoryMySQL) )
 		{
 			newTableCommand = newTableCommand +" ENGINE = MEMORY";
 		}
@@ -204,11 +209,13 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 		int resultSize = 0;
 		try
 		{
-			myConn = this.dataSource.getConnection(DB_REQUEST_TYPE.SELECT);
+			long s = System.currentTimeMillis();
+			myConn = this.dataSource.getConnection();
+			long e = System.currentTimeMillis();
 			// for row by row fetching, otherwise default is fetching whole result
 			// set in memory. 
 			// http://dev.mysql.com/doc/connector-j/en/connector-j-reference-implementation-notes.html
-			if( ContextServiceConfig.rowByRowFetchingEnabled )
+			if( ContextServiceConfig.ROW_BY_ROW_FETCHING_ENABLED )
 			{
 				stmt   = myConn.createStatement(java.sql.ResultSet.TYPE_FORWARD_ONLY, 
 					java.sql.ResultSet.CONCUR_READ_ONLY);
@@ -238,7 +245,7 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 					
 					//String anonymizedIDToGUIDMapping = null;
 					JSONArray anonymizedIDToGuidArray = null;
-					if( ContextServiceConfig.PRIVACY_ENABLED )
+					if( ContextServiceConfig.privacyEnabled )
 					{
 						byte[] anonymizedIDToGUIDMappingBA 
 							= rs.getBytes(RegionMappingDataStorageDB.anonymizedIDToGUIDMappingColName);
@@ -274,7 +281,7 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 				}
 				else
 				{
-					if(ContextServiceConfig.onlyResultCountEnable)
+					if(ContextServiceConfig.ONLY_RESULT_COUNT_ENABLE)
 					{
 						resultSize = rs.getInt("RESULT_SIZE");
 					}
@@ -286,7 +293,8 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 			}
 			
 			System.out.println("MySQL query exec time "
-					+(System.currentTimeMillis()-start)+" query "+mysqlQuery );
+					+(System.currentTimeMillis()-start)+" query "+mysqlQuery 
+					+" conn acquire time "+(e-s));
 			
 			rs.close();
 			stmt.close();
@@ -315,8 +323,9 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 	}
 	
 	
-	public JSONObject getGUIDStoredUsingHashIndex( String guid )
+	/*public JSONObject getGUIDStoredUsingHashIndex( String guid )
 	{
+		long start = System.currentTimeMillis();
 		Connection myConn 		= null;
 		Statement stmt 			= null;
 		
@@ -331,7 +340,6 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 		{
 			myConn = this.dataSource.getConnection(DB_REQUEST_TYPE.SELECT);
 			stmt = myConn.createStatement();
-			long start = System.currentTimeMillis();
 			ResultSet rs = stmt.executeQuery(selectQuery);
 			
 			while( rs.next() )
@@ -389,13 +397,7 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 					}
 				}
 			}
-			rs.close();	
-			long end = System.currentTimeMillis();
-			if(ContextServiceConfig.DEBUG_MODE)
-			{
-				System.out.println("TIME_DEBUG: getGUIDStoredInPrimarySubspace "
-										+(end-start));
-			}
+			rs.close();
 		} catch (SQLException e)
 		{
 			e.printStackTrace();
@@ -414,6 +416,112 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 			}
 		}
 		
+		long end = System.currentTimeMillis();
+		
+		if(ContextServiceConfig.PROFILER_ENABLED)
+		{
+			cnsProfiler.addGetGUIDUsingHashIndexTime(end-start);
+		}
+		
+		return oldValueJSON;
+	}*/
+	
+	public JSONObject getGUIDStoredUsingHashIndex( String guid, Connection myConn )
+	{
+		long start = System.currentTimeMillis();
+		Statement stmt 			= null;
+		
+		String selectQuery 		= "SELECT * ";
+		String tableName 		= RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME;
+		
+		JSONObject oldValueJSON = new JSONObject();
+		
+		selectQuery = selectQuery + " FROM "+tableName+" WHERE nodeGUID = X'"+guid+"'";
+		
+		try
+		{
+			stmt = myConn.createStatement();
+			ResultSet rs = stmt.executeQuery(selectQuery);
+			
+			while( rs.next() )
+			{
+				ResultSetMetaData rsmd = rs.getMetaData();
+				
+				int columnCount = rsmd.getColumnCount();
+				
+				// The column count starts from 1
+				for (int i = 1; i <= columnCount; i++ ) 
+				{
+					String colName = rsmd.getColumnName(i);
+					
+					// doing translation here saves multiple strng to JSON translations later in code.
+					if(colName.equals(RegionMappingDataStorageDB.anonymizedIDToGUIDMappingColName))
+					{
+						byte[] colValBA = rs.getBytes(colName);
+						
+						if(colValBA != null)
+						{
+							if(colValBA.length > 0)
+							{
+								try
+								{
+									JSONArray jsonArr 
+										= this.deserializeByteArrayToAnonymizedIDJSONArray(colValBA);
+									oldValueJSON.put(colName, jsonArr);
+								} catch (JSONException e) 
+								{
+									e.printStackTrace();
+								}
+							}
+						}
+					} else if(colName.equals(RegionMappingDataStorageDB.unsetAttrsColName))
+					{
+						String colVal = rs.getString(colName);
+						try
+						{
+							oldValueJSON.put(colName, new JSONObject(colVal));
+						} catch (JSONException e) 
+						{
+							e.printStackTrace();
+						}
+					}
+					else
+					{
+						String colVal = rs.getString(colName);
+						try
+						{
+							oldValueJSON.put(colName, colVal);
+						} catch (JSONException e) 
+						{
+							e.printStackTrace();
+						}
+					}
+				}
+			}
+			rs.close();
+		} catch (SQLException e)
+		{
+			e.printStackTrace();
+		} finally
+		{
+			try
+			{
+				if (stmt != null)
+					stmt.close();
+			}
+			catch(SQLException e)
+			{
+				e.printStackTrace();
+			}
+		}
+		
+		long end = System.currentTimeMillis();
+		
+		if(ContextServiceConfig.PROFILER_ENABLED)
+		{
+			cnsProfiler.addGetGUIDUsingHashIndexTime(end-start);
+		}
+		
 		return oldValueJSON;
 	}
 	
@@ -428,18 +536,25 @@ public class SQLGUIDStorage implements GUIDStorageInterface
      * @throws JSONException
      */
     public void storeGUIDUsingHashIndex( String nodeGUID, 
-    		JSONObject jsonToWrite, int updateOrInsert ) throws JSONException
+    		JSONObject jsonToWrite, int updateOrInsert , Connection myConn) throws JSONException
     {
+    	long start = System.currentTimeMillis();
     	if( updateOrInsert == RegionMappingDataStorageDB.INSERT_REC )
     	{
     		this.performStoreGUIDInPrimarySubspaceInsert
-    			(nodeGUID, jsonToWrite);
+    			(nodeGUID, jsonToWrite, myConn);
     	}
     	else if( updateOrInsert == RegionMappingDataStorageDB.UPDATE_REC )
     	{
     		this.performStoreGUIDInPrimarySubspaceUpdate
-    				(nodeGUID, jsonToWrite);
+    				(nodeGUID, jsonToWrite, myConn);
     	}
+    	long end = System.currentTimeMillis();
+    	
+    	if(ContextServiceConfig.PROFILER_ENABLED)
+		{
+    		cnsProfiler.addStoreGuidUsingHashIndexTime(end-start);
+		}
     }
 	
 	/**
@@ -455,58 +570,36 @@ public class SQLGUIDStorage implements GUIDStorageInterface
     		JSONObject updatedAttrValJSON, int updateOrInsert ) throws JSONException
     {
     	long start = System.currentTimeMillis();
-    	if(ContextServiceConfig.DEBUG_MODE)
-    	{
-    		ContextServiceLogger.getLogger().fine("STARTED storeGUIDInSecondarySubspace "+nodeGUID);
-    	}
-    	
     	if( updateOrInsert == RegionMappingDataStorageDB.INSERT_REC )
     	{
     		this.performStoreGUIDInSecondarySubspaceInsert
-    			(tableName, nodeGUID, updatedAttrValJSON);
-    		
-    		if(ContextServiceConfig.DEBUG_MODE)
-        	{
-        		long end = System.currentTimeMillis();
-        		ContextServiceLogger.getLogger().fine
-        		("FINISHED storeGUIDInSecondarySubspace Insert "+nodeGUID
-        				+" time "+(end-start));
-        	}	
+    			(tableName, nodeGUID, updatedAttrValJSON);	
     	}
     	else if( updateOrInsert == RegionMappingDataStorageDB.UPDATE_REC )
     	{
     		this.performStoreGUIDInSecondarySubspaceUpdate
     				( tableName, nodeGUID, updatedAttrValJSON );
-    		
-    		if(ContextServiceConfig.DEBUG_MODE)
-        	{
-        		long end = System.currentTimeMillis();
-        		ContextServiceLogger.getLogger().fine
-        		("FINISHED storeGUIDInSecondarySubspace Update "+nodeGUID
-        				+" time "+(end-start));
-        	}
     	}
+    	long end = System.currentTimeMillis();
+    	
+    	if(ContextServiceConfig.PROFILER_ENABLED)
+		{
+    		cnsProfiler.addStoreGuidUsingAttrIndexTime(end-start);
+		}
     }
     
     public void deleteGUIDFromTable(String tableName, String nodeGUID)
 	{
-		String deleteCommand = "DELETE FROM "+tableName+" WHERE nodeGUID= X'"+nodeGUID+"'";
+		String deleteCommand = "DELETE FROM "+tableName
+							+" WHERE nodeGUID= X'"+nodeGUID+"'";
 		Connection myConn 	= null;
 		Statement stmt 		= null;
 		
 		try
 		{
-			myConn = this.dataSource.getConnection(DB_REQUEST_TYPE.UPDATE);
+			myConn = this.dataSource.getConnection();
 			stmt = myConn.createStatement();
-			long start = System.currentTimeMillis();
 			stmt.executeUpdate(deleteCommand);
-			long end = System.currentTimeMillis();
-			
-			if( ContextServiceConfig.DEBUG_MODE )
-        	{
-				System.out.println("TIME_DEBUG: deleteGUIDFromSubspaceRegion "+(end-start));
-        	}
-			
 		} catch(SQLException sqex)
 		{
 			sqex.printStackTrace();
@@ -548,14 +641,14 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 		
 		// if privacy is enabled then we also fetch 
 		// anonymizedIDToGuidMapping set.
-		if(ContextServiceConfig.PRIVACY_ENABLED)
+		if(ContextServiceConfig.privacyEnabled)
 		{
 			mysqlQuery = "SELECT nodeGUID , "+RegionMappingDataStorageDB.anonymizedIDToGUIDMappingColName
 					+" from "+tableName+" WHERE ( ";
 		}
 		else
 		{
-			if(ContextServiceConfig.onlyResultCountEnable)
+			if(ContextServiceConfig.ONLY_RESULT_COUNT_ENABLE)
 			{
 				mysqlQuery = "SELECT COUNT(nodeGUID) AS RESULT_SIZE from "+tableName+" WHERE ( ";
 			}
@@ -737,22 +830,12 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 	        
 	        updateSqlQuery = updateSqlQuery + " WHERE nodeGUID = X'"+nodeGUID+"'";
             
-            myConn = this.dataSource.getConnection(DB_REQUEST_TYPE.UPDATE);
+            myConn = this.dataSource.getConnection();
             stmt = myConn.createStatement();
             
         	// if update fails then insert
-    		//ContextServiceLogger.getLogger().fine(this.myNodeID+" EXECUTING UPDATE "+updateSqlQuery);
-    		long start   = System.currentTimeMillis();
         	int rowCount = stmt.executeUpdate(updateSqlQuery);
-        	long end     = System.currentTimeMillis();
         	
-        	if(ContextServiceConfig.DEBUG_MODE)
-        	{
-        		System.out.println("TIME_DEBUG: performStoreGUIDInSecondarySubspaceUpdate "
-        						+(end-start));
-        	}
-        	
-        	//ContextServiceLogger.getLogger().fine(this.myNodeID+" EXECUTING UPDATE rowCount "+rowCount);
         	// update failed try insert
         	if(rowCount == 0)
         	{
@@ -786,7 +869,6 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 	private void performStoreGUIDInSecondarySubspaceInsert( String tableName, String nodeGUID, 
     		JSONObject toWriteJSON )
 	{
-		long s1 = System.currentTimeMillis();
 		ContextServiceLogger.getLogger().fine( "STARTED performStoreGUIDInSubspaceInsert "
 				+tableName+" nodeGUID "+nodeGUID );
     	
@@ -822,7 +904,6 @@ public class SQLGUIDStorage implements GUIDStorageInterface
     		
     		first = true;
     		colIter = toWriteJSON.keys();
-    		long start1 = System.currentTimeMillis();
         	// just a way to iterate over attributes.
     		while( colIter.hasNext() )
     		{
@@ -865,27 +946,17 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 	            	insertQuery = insertQuery +" , "+colValue;
 	            }
     		}
-    		long end1 = System.currentTimeMillis();
     		insertQuery = insertQuery +" , X'"+nodeGUID+"' )";
     		
-    		long end2 = System.currentTimeMillis();
-    		
-    		
-    		myConn = this.dataSource.getConnection(DB_REQUEST_TYPE.UPDATE);
+    		myConn = this.dataSource.getConnection();
             stmt = myConn.createStatement();  
             
-    		ContextServiceLogger.getLogger().fine(this.myNodeID+" EXECUTING INSERT "+insertQuery);
-    		long start   = System.currentTimeMillis();
+    		ContextServiceLogger.getLogger().fine
+    					(this.myNodeID+" EXECUTING INSERT "+insertQuery);
     		int rowCount = stmt.executeUpdate(insertQuery);
-    		long end     = System.currentTimeMillis();
     		
-    		if(ContextServiceConfig.DEBUG_MODE)
-        	{
-        		System.out.println("TIME_DEBUG: performStoreGUIDInSecondarySubspaceInsert insert  "
-        				+tableName
-        				+" nodeGUID "+nodeGUID+" "+(end-start)+" "+(end1-start1)+" "+(end2-end1));
-        	}
-    		ContextServiceLogger.getLogger().fine(this.myNodeID+" EXECUTING INSERT rowCount "
+    		ContextServiceLogger.getLogger().fine
+    					(this.myNodeID+" EXECUTING INSERT rowCount "
     					+rowCount+" insertQuery "+insertQuery);
         }
         catch ( Exception | Error ex )
@@ -906,12 +977,6 @@ public class SQLGUIDStorage implements GUIDStorageInterface
             	e.printStackTrace();
             }
         }
-        long e1 = System.currentTimeMillis();
-        if(ContextServiceConfig.DEBUG_MODE)
-    	{
-    		System.out.println("TIME_DEBUG: Total performStoreGUIDInSecondarySubspaceInsert insert  "
-    				+ (e1-s1)+"updatedAttrValJSON "+toWriteJSON.length());
-    	}
 	}
 	
 	/**
@@ -922,14 +987,13 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 	 * @param atrToValueRep
 	 */
 	private void performStoreGUIDInPrimarySubspaceUpdate( String nodeGUID, 
-    		JSONObject jsonToWrite )
+    		JSONObject jsonToWrite, Connection myConn )
 	{
 		ContextServiceLogger.getLogger().fine(
 				"performStoreGUIDInPrimarySubspaceUpdate "
 				+ RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME
 				+ " nodeGUID "+nodeGUID);
 		
-        Connection myConn      		= null;
         Statement stmt         		= null;
         String tableName 			= RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME;
         
@@ -998,22 +1062,11 @@ public class SQLGUIDStorage implements GUIDStorageInterface
             
 	        updateSqlQuery = updateSqlQuery + " WHERE nodeGUID = X'"+nodeGUID+"'";
             
-            myConn = this.dataSource.getConnection(DB_REQUEST_TYPE.UPDATE);
             stmt = myConn.createStatement();
             
         	// if update fails then insert
-    		//ContextServiceLogger.getLogger().fine(this.myNodeID+" EXECUTING UPDATE "+updateSqlQuery);
-    		long start   = System.currentTimeMillis();
         	int rowCount = stmt.executeUpdate(updateSqlQuery);
-        	long end     = System.currentTimeMillis();
         	
-        	if(ContextServiceConfig.DEBUG_MODE)
-        	{
-        		System.out.println("TIME_DEBUG: performStoreGUIDInPrimarySubspaceUpdate "
-        						+(end-start));
-        	}
-        	
-        	//ContextServiceLogger.getLogger().fine(this.myNodeID+" EXECUTING UPDATE rowCount "+rowCount);
         	// update failed try insert
         	if(rowCount == 0)
         	{
@@ -1029,9 +1082,6 @@ public class SQLGUIDStorage implements GUIDStorageInterface
             {
                 if ( stmt != null )
                     stmt.close();
-                
-                if ( myConn != null )
-                    myConn.close();
             }
             catch( SQLException e )
             {
@@ -1040,15 +1090,13 @@ public class SQLGUIDStorage implements GUIDStorageInterface
         }
 	}
 	
-	
 	@SuppressWarnings("unchecked")
 	private void performStoreGUIDInPrimarySubspaceInsert
-					( String nodeGUID, JSONObject jsonToWrite )
+					( String nodeGUID, JSONObject jsonToWrite , Connection myConn)
 	{
 		ContextServiceLogger.getLogger().fine("performStoreGUIDInPrimarySubspaceInsert "
 				+RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME+" nodeGUID "+nodeGUID );
-    	
-        Connection myConn          = null;
+		
         Statement stmt         	   = null;
         
         String tableName = RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME;
@@ -1136,23 +1184,14 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 	            	insertQuery = insertQuery +" , "+colValue;
 	            }
 			}
-    		
-			insertQuery = insertQuery +" , X'"+nodeGUID+"' )";			
-
-    		
-    		myConn = this.dataSource.getConnection(DB_REQUEST_TYPE.UPDATE);
+			
+			insertQuery = insertQuery +" , X'"+nodeGUID+"' )";
+			
             stmt = myConn.createStatement();  
             
     		ContextServiceLogger.getLogger().fine(this.myNodeID+" EXECUTING INSERT "+insertQuery);
-    		long start   = System.currentTimeMillis();
-    		int rowCount = stmt.executeUpdate(insertQuery);
-    		long end     = System.currentTimeMillis();
     		
-    		if( ContextServiceConfig.DEBUG_MODE )
-        	{
-    			System.out.println("TIME_DEBUG: performStoreGUIDInPrimarySubspaceInsert "
-        															+(end-start) );
-        	}
+    		int rowCount = stmt.executeUpdate(insertQuery);
     		
     		ContextServiceLogger.getLogger().fine(this.myNodeID+" EXECUTING INSERT rowCount "+rowCount
     					+" insertQuery "+insertQuery);	
@@ -1167,9 +1206,6 @@ public class SQLGUIDStorage implements GUIDStorageInterface
             {
                 if ( stmt != null )
                     stmt.close();
-                
-                if ( myConn != null )
-                    myConn.close();
             }
             catch(SQLException e)
             {
@@ -1218,7 +1254,7 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 	
 	private String getPrivacyStorageString( String newTableCommand )
 	{
-		if(!ContextServiceConfig.IN_MEMORY_MYSQL)
+		if(!ContextServiceConfig.inMemoryMySQL)
 		{
 			newTableCommand 
 				= newTableCommand + " , "+RegionMappingDataStorageDB.anonymizedIDToGUIDMappingColName

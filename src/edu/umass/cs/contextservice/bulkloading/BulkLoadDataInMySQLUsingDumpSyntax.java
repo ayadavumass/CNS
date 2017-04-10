@@ -37,7 +37,7 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 {
 	//public static final String LATIN_ENCODING		= "ISO-8859-1";
 	// maximum inserts batched into one in the mysql dump file format
-	private static final int MAX_INSERT_BATCHING			= 10000;
+	private static final int MAX_INSERT_BATCHING			= 1000;
 	
 	private final int myId;
 	private final String allguidfilepath;
@@ -76,6 +76,7 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 	public void bulkLoadData()
 	{
 		long start = System.currentTimeMillis();
+		//writeMySQLDumpFile();
 		writeMySQLDumpFile();
 		System.out.println("MySQL dump file writing ended in "
 								+(System.currentTimeMillis()-start));
@@ -86,6 +87,7 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 		//List<String> attributeOrderList = writeNodeSpecificBulkLoadingFiles();
 		//loadDataFromFilesInMysql(attributeOrderList);
 	}
+	
 	
 	/**
 	 * writeMySQLDumpFile() function reads the all guids file and filters GUIDs that 
@@ -101,12 +103,13 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 		List<String> attributeOrderList = new LinkedList<String>();
 		try
 		{
+			long attrIndexTime = System.currentTimeMillis();
 			br = new BufferedReader(new FileReader(allguidfilepath));
 			//bw = new BufferedWriter(new FileWriter(ContextServiceConfig.BULK_LOAD_FILE+myId) );
 			
 		    bw = new BufferedWriter(
 		    		new OutputStreamWriter
-		    			(new FileOutputStream(ContextServiceConfig.BULK_LOAD_FILE+myId)));
+		    			(new FileOutputStream(ContextServiceConfig.BULK_LOAD_FILE+myId+".sql")));
 		    
 		    String str = "/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;";
 		    bw.write(str+"\n");
@@ -188,9 +191,8 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 						// first line contains the column order
 					}
 					
-					attrInsertQuery = attrInsertQuery 
-									+ "( "+RegionMappingDataStorageDB.GUID_COL_NAME;
-					
+					//attrInsertQuery = attrInsertQuery 
+					//				+ "( "+RegionMappingDataStorageDB.GUID_COL_NAME;
 					
 					// first column is guid and the attributes in order.
 					String[] parsed = currLine.split(",");
@@ -205,10 +207,11 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 						}
 						attributeOrderList.add(attrName);
 						
-						attrInsertQuery = attrInsertQuery + ","+attrName;
+						//attrInsertQuery = attrInsertQuery + ","+attrName;
 					}
 					
-					attrInsertQuery = attrInsertQuery + ") VALUES ";
+					//attrInsertQuery = attrInsertQuery + ") VALUES ";
+					attrInsertQuery = attrInsertQuery + " VALUES ";
 					
 					firstline = false;
 				}
@@ -216,7 +219,7 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 				{
 					String[] tupleParsed = currLine.split(",");
 					String currTuple 
-							= getATupleForInsertQuery(tupleParsed, attributeOrderList);
+							= getATupleForInsertQuery(tupleParsed, attributeOrderList, false);
 					
 					boolean mapsOnNode 
 							= checkIfTupleMapsToNode(tupleParsed, attributeOrderList);
@@ -243,16 +246,17 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 							attrInsertQuery = "INSERT INTO `"+RegionMappingDataStorageDB.ATTR_INDEX_TABLE_NAME
 									+"` ";
 							
-							attrInsertQuery = attrInsertQuery 
-									+ "( "+RegionMappingDataStorageDB.GUID_COL_NAME;
+							//attrInsertQuery = attrInsertQuery 
+							//		+ "( "+RegionMappingDataStorageDB.GUID_COL_NAME;
 							
-							for(int i=0; i<attributeOrderList.size(); i++)
-							{
-								String attrName = attributeOrderList.get(i);
-								attrInsertQuery = attrInsertQuery + ","+attrName;
-							}
+//							for(int i=0; i<attributeOrderList.size(); i++)
+//							{
+//								String attrName = attributeOrderList.get(i);
+//								//attrInsertQuery = attrInsertQuery + ","+attrName;
+//							}
 					
-							attrInsertQuery = attrInsertQuery + ") VALUES ";
+							//attrInsertQuery = attrInsertQuery + ") VALUES ";
+							attrInsertQuery = attrInsertQuery + " VALUES ";
 							attrnumLinesBatched = 0;
 							attrfirsttuple = true;
 						}
@@ -268,6 +272,10 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 				bw.write(attrInsertQuery+"\n");
 			}
 			
+			System.out.println("Writing attrIndex dump completed "
+					+(System.currentTimeMillis()-attrIndexTime));
+			
+			long hashIndexTime = System.currentTimeMillis();
 			
 			str = "/*!40000 ALTER TABLE `attrIndexDataStorage` ENABLE KEYS */;";
 			bw.write(str+"\n");
@@ -327,20 +335,21 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 						// first line contains the column order
 					}
 					
-					hashInsertQuery = hashInsertQuery 
-							+ "( "+RegionMappingDataStorageDB.GUID_COL_NAME;
+					//hashInsertQuery = hashInsertQuery 
+					//		+ "( "+RegionMappingDataStorageDB.GUID_COL_NAME;
 					
 					// first column is guid and the attributes in order.
-					String[] parsed = currLine.split(",");
+					//String[] parsed = currLine.split(",");
 					// ignoring fisr column, that should be guid
-					for(int i=1; i<parsed.length; i++)
-					{
-						String attrName = parsed[i].trim();
-						
-						hashInsertQuery = hashInsertQuery + ","+attrName;
-					}
+//					for(int i=1; i<parsed.length; i++)
+//					{
+//						String attrName = parsed[i].trim();
+//						
+//						//hashInsertQuery = hashInsertQuery + ","+attrName;
+//					}
 					
-					hashInsertQuery = hashInsertQuery + ") VALUES ";
+					//hashInsertQuery = hashInsertQuery + ") VALUES ";
+					hashInsertQuery = hashInsertQuery + " VALUES ";
 					
 					firstline = false;
 				}
@@ -348,7 +357,7 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 				{
 					String[] tupleParsed = currLine.split(",");
 					String currTuple 
-							= getATupleForInsertQuery(tupleParsed, attributeOrderList);
+							= getATupleForInsertQuery(tupleParsed, attributeOrderList, true);
 					
 					
 					// tupleParsed[0] is guid
@@ -374,16 +383,17 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 							hashInsertQuery = "INSERT INTO `"+RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME
 									+"` ";
 							
-							hashInsertQuery = hashInsertQuery 
-									+ "( "+RegionMappingDataStorageDB.GUID_COL_NAME;
+							//hashInsertQuery = hashInsertQuery 
+							//		+ "( "+RegionMappingDataStorageDB.GUID_COL_NAME;
 							
-							for(int i=0; i<attributeOrderList.size(); i++)
-							{
-								String attrName = attributeOrderList.get(i);
-								hashInsertQuery = hashInsertQuery + ","+attrName;
-							}
+//							for(int i=0; i<attributeOrderList.size(); i++)
+//							{
+//								String attrName = attributeOrderList.get(i);
+//								//hashInsertQuery = hashInsertQuery + ","+attrName;
+//							}
 					
-							hashInsertQuery = hashInsertQuery + ") VALUES ";
+							//hashInsertQuery = hashInsertQuery + ") VALUES ";
+							hashInsertQuery = hashInsertQuery + " VALUES ";
 							hashnumLinesBatched = 0;
 							hashfirsttuple = true;
 						}
@@ -397,6 +407,9 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 				hashInsertQuery = hashInsertQuery + ";";
 				bw.write(hashInsertQuery+"\n");
 			}
+			
+			System.out.println("Writing hashIndex dump completed "
+					+(System.currentTimeMillis()-hashIndexTime));
 			
 			str = "/*!40000 ALTER TABLE `guidHashDataStorage` ENABLE KEYS */;";
 			bw.write(str+"\n");
@@ -461,26 +474,25 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 		}
 	}
 	
-	
 	private void loadDataUsingMySQLScript()
-	{	
+	{
 		String connStr = dataSource.getCmdLineConnString();
 		
 		String currentDir 		 = System.getProperty("user.dir");
 		String bulkLoadFilePath = currentDir+"/"
-					+ContextServiceConfig.BULK_LOAD_FILE+myId;
+					+ContextServiceConfig.BULK_LOAD_FILE+myId+".sql";
 		
 		BufferedWriter bw = null;
 		String loadCmd = connStr +" -e \"source "+bulkLoadFilePath+"\"";
 		
 		System.out.println("loadCmd "+loadCmd);
 		
-		try 
+		try
 		{
 			String scriptname = "bulkloadingScript"+myId+".sh";
-//			bw = new BufferedWriter(new FileWriter(scriptname));
-//			bw.write(loadCmd+"\n");
-//			bw.close();
+			bw = new BufferedWriter(new FileWriter(scriptname));
+			bw.write(loadCmd+"\n");
+			bw.close();
 			
 			Runtime.getRuntime().exec("chmod +x "+scriptname).waitFor();
 			
@@ -553,7 +565,8 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 	}
 	
 	
-	private String getATupleForInsertQuery(String[] tupleParsed, List<String> orderedAttrList) throws UnsupportedEncodingException
+	private String getATupleForInsertQuery(String[] tupleParsed, 
+				List<String> orderedAttrList, boolean hashIndex) throws UnsupportedEncodingException
 	{
     	if( !(tupleParsed.length == (orderedAttrList.size()+1)) )
 		{
@@ -586,7 +599,15 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 		    
 		    currTuple = currTuple +","+attrValue;
     	}
-    	currTuple = currTuple +")";
+    	if(!hashIndex)
+    	{
+    		currTuple = currTuple +")";
+    	}
+    	else
+    	{
+    		// for unset attr
+    		currTuple = currTuple +" , '{}' )";
+    	}
     	return currTuple;
 	}
 	

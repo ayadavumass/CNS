@@ -2,6 +2,8 @@ package edu.umass.cs.contextservice.schemes.components;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -19,7 +21,7 @@ import edu.umass.cs.contextservice.logging.ContextServiceLogger;
 import edu.umass.cs.contextservice.messages.QueryMesgToSubspaceRegion;
 import edu.umass.cs.contextservice.messages.QueryMesgToSubspaceRegionReply;
 import edu.umass.cs.contextservice.messages.QueryMsgFromUserReply;
-import edu.umass.cs.contextservice.profilers.ProfilerStatClass;
+import edu.umass.cs.contextservice.profilers.CNSProfiler;
 import edu.umass.cs.contextservice.queryparsing.QueryInfo;
 import edu.umass.cs.contextservice.queryparsing.QueryParser;
 import edu.umass.cs.contextservice.regionmapper.AbstractRegionMappingPolicy;
@@ -36,7 +38,7 @@ public class GUIDAttrValueProcessing
 			AbstractDataStorageDB hyperspaceDB, 
 		JSONMessenger<Integer> messenger , 
 		ConcurrentHashMap<Long, QueryInfo> pendingQueryRequests, 
-		ProfilerStatClass profStats )
+		CNSProfiler profStats )
 	{
 		super(myID, regionMappingPolicy, 
 				hyperspaceDB, messenger , 
@@ -58,6 +60,7 @@ public class GUIDAttrValueProcessing
 		grpGUID = queryInfo.getGroupGUID();
 		expiryTime = queryInfo.getExpiryTime();
 		
+		
 		if( grpGUID.length() <= 0 )
 		{
 			ContextServiceLogger.getLogger().fine
@@ -71,19 +74,18 @@ public class GUIDAttrValueProcessing
 		}
 		pendingQueryRequests.put(queryInfo.getRequestId(), queryInfo);
 		
-//		ValueSpaceInfo searchQValSpace = ValueSpaceInfo.getAllAttrsValueSpaceInfo
-//										(queryInfo.getSearchQueryAttrValMap(), 
-//												AttributeTypes.attributeMap);
 		
+		long start = System.currentTimeMillis();
 		List<Integer> nodeList 
 				= regionMappingPolicy.getNodeIDsForSearch
 					(queryInfo.getSearchQueryAttrValMap());
+		long end = System.currentTimeMillis();
 		
-		if(ContextServiceConfig.PROFILER_THREAD)
+		if(ContextServiceConfig.PROFILER_ENABLED)
 		{
-			profStats.incrementNumSearches(nodeList.size());
+			queryInfo.getSearchStats().setNodeInfoAndTime
+								(nodeList.size(), (end-start));
 		}
-		
 		
 		queryInfo.initializeSearchQueryReplyInfo(nodeList);
 		
@@ -125,8 +127,15 @@ public class GUIDAttrValueProcessing
 		// value, which is outside the Min max value corresponding to an attribute.
 		HashMap<String, AttributeValueRange> searchAttrValRange	 = QueryParser.parseQuery(query);
 		
+		long start = System.currentTimeMillis();
 		int resultSize = this.hyperspaceDB.processSearchQueryUsingAttrIndex
 				(searchAttrValRange, resultGUIDs);
+		long end = System.currentTimeMillis();
+		
+		if(ContextServiceConfig.PROFILER_ENABLED)
+		{
+			profStats.addSearchQueryProcessTime((end-start), resultSize);
+		}
 		
 		return resultSize;
 	}
@@ -234,9 +243,16 @@ public class GUIDAttrValueProcessing
 			ContextServiceLogger.getLogger().info("Sending queryMsgFromUserReply mesg from " 
 					+ myID +" to node "+new InetSocketAddress(queryInfo.getUserIP(), queryInfo.getUserPort()));
 
-			pendingQueryRequests.remove(requestId);
+			QueryInfo qInfo = pendingQueryRequests.remove(requestId);
+			
+			if(ContextServiceConfig.PROFILER_ENABLED)
+			{
+				qInfo.getSearchStats().setQueryEndTime();
+				profStats.addSearchStats(qInfo.getSearchStats());
+			}
 		}
 	}
+	
 	
 	/**
 	 * This function processes a request serially.
@@ -255,23 +271,21 @@ public class GUIDAttrValueProcessing
 								= updateReq.getValueUpdateFromGNS().getAnonymizedIDToGuidMapping();
 		
 		// get the old value and process the update in primary subspace and other subspaces.
+		Connection myConn = null;
 		
 		try
-		{	
-			boolean firstTimeInsert = false;
+		{
+			boolean firstTimeInsert = false;	
 			
-			long start 	 = System.currentTimeMillis();
+			myConn = this.hyperspaceDB.getDataSource().getConnection();
 			
+			long start = System.currentTimeMillis();
 			JSONObject oldValueJSON 
-						 = this.hyperspaceDB.getGUIDStoredUsingHashIndex(GUID);
+						 = this.hyperspaceDB.getGUIDStoredUsingHashIndex(GUID, myConn);
+			long end = System.currentTimeMillis();
 			
-			long end 	 = System.currentTimeMillis();
-			
-			if( ContextServiceConfig.DEBUG_MODE )
-			{
-				System.out.println("getGUIDStoredInPrimarySubspace time "+(end-start)
-							+" since upd start"+(end-updateStartTime));
-			}
+			if(ContextServiceConfig.PROFILER_ENABLED)
+				updateReq.getUpdateStats().setHashIndexReadTime(end-start);
 			
 			int updateOrInsert 			= -1;
 			
@@ -282,28 +296,25 @@ public class GUIDAttrValueProcessing
 			}
 			else
 			{
-				profStats.incrementIncomingUpdateRate();
+				if(ContextServiceConfig.PROFILER_ENABLED)
+				{
+					profStats.incrementIncomingUpdateRate();
+				}
 				firstTimeInsert = false;
 				updateOrInsert = RegionMappingDataStorageDB.UPDATE_REC;
-				
-				if(ContextServiceConfig.SEARCH_UPDATE_TRACE_ENABLE)
-				{
-					
-				}
 			}
 			
 			JSONObject jsonToWrite = getJSONToWriteInPrimarySubspace( oldValueJSON, 
 					attrValuePairs, anonymizedIDToGuidMapping );
 			
+			start = System.currentTimeMillis();
 			this.hyperspaceDB.storeGUIDUsingHashIndex
-								(GUID, jsonToWrite, updateOrInsert);
+								(GUID, jsonToWrite, updateOrInsert, myConn);
 			
+			end = System.currentTimeMillis();
 			
-			if(ContextServiceConfig.DEBUG_MODE)
-			{
-				long now = System.currentTimeMillis();
-				System.out.println("primary subspace update complete "+(now-updateStartTime));
-			}
+			if(ContextServiceConfig.PROFILER_ENABLED)
+				updateReq.getUpdateStats().setHashIndexWriteTime(end-start);
 			
 			// process update at secondary subspaces.
 			updateGUIDInAttrIndexes( oldValueJSON , 
@@ -313,8 +324,26 @@ public class GUIDAttrValueProcessing
 		catch ( JSONException e )
 		{
 			e.printStackTrace();
+		} catch (SQLException e) 
+		{
+			e.printStackTrace();
+		}
+		finally
+		{
+			if(myConn != null)
+			{
+				try 
+				{
+					myConn.close();
+				} 
+				catch (SQLException e) 
+				{
+					e.printStackTrace();
+				}
+			}
 		}
 	}
+	
 	
 	private void updateGUIDInAttrIndexes( JSONObject oldValueJSON , 
 			boolean firstTimeInsert , JSONObject updatedAttrValJSON , 

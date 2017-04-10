@@ -27,6 +27,7 @@ import edu.umass.cs.contextservice.client.common.ACLEntry;
 import edu.umass.cs.contextservice.client.common.AnonymizedIDEntry;
 import edu.umass.cs.contextservice.config.ContextServiceConfig;
 import edu.umass.cs.contextservice.config.ContextServiceConfig.PrivacySchemes;
+
 import edu.umass.cs.contextservice.nodeApp.StartContextServiceNode;
 import edu.umass.cs.contextservice.utils.Utils;
 import edu.umass.cs.gnsclient.client.util.GuidEntry;
@@ -58,18 +59,19 @@ public class ContextServiceTests
 		// setting all config parameters for the test.
 		ContextServiceConfig.sendFullRepliesToClient 	= true;
 		ContextServiceConfig.sendFullRepliesWithinCS 	= true;
-		ContextServiceConfig.TRIGGER_ENABLED 			= true;
-		ContextServiceConfig.UniqueGroupGUIDEnabled     = true;
-		ContextServiceConfig.PRIVACY_ENABLED			= true;
-		ContextServiceConfig.IN_MEMORY_MYSQL			= false;
+		ContextServiceConfig.triggerEnabled 			= true;
+		ContextServiceConfig.uniqueGroupGUIDEnabled     = true;
+		ContextServiceConfig.privacyEnabled				= true;
+		ContextServiceConfig.inMemoryMySQL				= false;
 		// false because in experiment mode full triggers are
 		// not returned to client so they client doesn't become bottleneck.
 		ContextServiceClient.EXPERIMENT_MODE            = false;
 		
+		// droping db for tests.
+		ContextServiceConfig.dropLocalDB 				= true;
 		
 		// start context service.
 		startFourNodeSetup();
-		
 		
 		// make a client connection
 		csClient = new ContextServiceClient(csNodeIp, csPort, false,
@@ -129,7 +131,7 @@ public class ContextServiceTests
 		assert( ContextServiceConfig.sendFullRepliesToClient );
 		assert( ContextServiceConfig.sendFullRepliesWithinCS );
 		
-		assert(ContextServiceConfig.PRIVACY_ENABLED);
+		assert(ContextServiceConfig.privacyEnabled);
 		
 		assert(ContextServiceConfig.DECRYPTIONS_ON_SEARCH_REPLY_ENABLED);
 		// if privacy not enabled then just return.
@@ -343,10 +345,10 @@ public class ContextServiceTests
 	{
 		//FIXME: need to add a circular query trigger test
 		// these tests require full search replies to be sent.
-		assert( ContextServiceConfig.TRIGGER_ENABLED );
+		assert( ContextServiceConfig.triggerEnabled );
 		assert( ContextServiceConfig.sendFullRepliesToClient );
 		assert( ContextServiceConfig.sendFullRepliesWithinCS );
-		assert(ContextServiceConfig.UniqueGroupGUIDEnabled );
+		assert(ContextServiceConfig.uniqueGroupGUIDEnabled );
 		assert(!ContextServiceClient.EXPERIMENT_MODE);
 		
 		//Random rand = new Random();

@@ -3,6 +3,8 @@ package edu.umass.cs.contextservice.schemes;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.concurrent.ExecutorService;
@@ -17,7 +19,6 @@ import org.paukov.combinatorics.Generator;
 import org.paukov.combinatorics.ICombinatoricsVector;
 
 import edu.umass.cs.contextservice.attributeInfo.AttributeTypes;
-import edu.umass.cs.contextservice.bulkloading.BulkLoadDataInMySQLFromAFile;
 import edu.umass.cs.contextservice.bulkloading.BulkLoadDataInMySQLUsingDumpSyntax;
 import edu.umass.cs.contextservice.common.CSNodeConfig;
 import edu.umass.cs.contextservice.config.ContextServiceConfig;
@@ -41,11 +42,10 @@ import edu.umass.cs.contextservice.messages.ValueUpdateFromGNS;
 import edu.umass.cs.contextservice.messages.ValueUpdateFromGNSReply;
 import edu.umass.cs.contextservice.messages.ValueUpdateToSubspaceRegionMessage;
 import edu.umass.cs.contextservice.messages.ValueUpdateToSubspaceRegionReplyMessage;
-import edu.umass.cs.contextservice.profilers.ProfilerStatClass;
+import edu.umass.cs.contextservice.profilers.CNSProfiler;
 import edu.umass.cs.contextservice.queryparsing.QueryInfo;
 import edu.umass.cs.contextservice.regionmapper.AbstractRegionMappingPolicy;
 import edu.umass.cs.contextservice.regionmapper.FileBasedRegionMappingPolicy;
-import edu.umass.cs.contextservice.regionmapper.FileBasedRegionMappingPolicyWithDB;
 import edu.umass.cs.contextservice.regionmapper.HyperdexBasedRegionMappingPolicy;
 import edu.umass.cs.contextservice.regionmapper.SqrtNConsistentHashingPolicy;
 import edu.umass.cs.contextservice.regionmapper.UniformGreedyRegionMappingPolicyWithDB;
@@ -74,7 +74,7 @@ public class RegionMappingBasedScheme extends AbstractScheme
 	
 	private TriggerProcessingInterface triggerProcessing;
 	
-	private ProfilerStatClass profStats;
+	private CNSProfiler profStats;
 	
 	private AbstractDataSource dataSource;
 	
@@ -87,15 +87,15 @@ public class RegionMappingBasedScheme extends AbstractScheme
 	{
 		super(nc, m);
 		
-		if(ContextServiceConfig.PROFILER_THREAD)
+		if(ContextServiceConfig.PROFILER_ENABLED)
 		{
-			profStats = new ProfilerStatClass();
+			profStats = new CNSProfiler();
 			new Thread(profStats).start();
 		}
 		
 		if(ContextServiceConfig.sqlDBType == ContextServiceConfig.SQL_DB_TYPE.MYSQL)
 		{
-			dataSource = new MySQLDataSource(this.getMyID());
+			dataSource = new MySQLDataSource(this.getMyID(), profStats);
 		}
 		else if(ContextServiceConfig.sqlDBType == ContextServiceConfig.SQL_DB_TYPE.SQLITE)
 		{
@@ -103,7 +103,7 @@ public class RegionMappingBasedScheme extends AbstractScheme
 		}
 		
 		nodeES = Executors.newFixedThreadPool(
-				ContextServiceConfig.THREAD_POOL_SIZE);
+				ContextServiceConfig.threadPoolSize);
 		
 		guidUpdateInfoMap = new HashMap<String, GUIDUpdateInfo>();
 		
@@ -116,11 +116,9 @@ public class RegionMappingBasedScheme extends AbstractScheme
 				break;
 			}
 			case ContextServiceConfig.DEMAND_AWARE:
-			{
-//				regionMappingPolicy = new FileBasedRegionMappingPolicyWithDB(
-//						dataSource, AttributeTypes.attributeMap, nc);
-				
-				regionMappingPolicy = new FileBasedRegionMappingPolicy(AttributeTypes.attributeMap, nc);
+			{	
+				regionMappingPolicy = new FileBasedRegionMappingPolicy
+												(AttributeTypes.attributeMap, nc);
 				break;
 			}
 			case ContextServiceConfig.HYPERDEX:
@@ -132,7 +130,8 @@ public class RegionMappingBasedScheme extends AbstractScheme
 			}
 			case ContextServiceConfig.SQRT_N_HASH:
 			{
-				regionMappingPolicy = new SqrtNConsistentHashingPolicy(AttributeTypes.attributeMap, nc);
+				regionMappingPolicy = new SqrtNConsistentHashingPolicy
+											(AttributeTypes.attributeMap, nc);
 				break;
 			}
 			default:
@@ -142,8 +141,8 @@ public class RegionMappingBasedScheme extends AbstractScheme
 		
 		regionMappingPolicy.computeRegionMapping();
 		
-		hyperspaceDB = new RegionMappingDataStorageDB(this.getMyID(), dataSource);
-		
+		hyperspaceDB = new RegionMappingDataStorageDB(this.getMyID(), dataSource, 
+							profStats);
 		
 		guidAttrValProcessing 
 					= new GUIDAttrValueProcessing(
@@ -151,9 +150,9 @@ public class RegionMappingBasedScheme extends AbstractScheme
 				hyperspaceDB, messenger , pendingQueryRequests , profStats);
 		
 		
-		if( ContextServiceConfig.TRIGGER_ENABLED )
+		if( ContextServiceConfig.triggerEnabled )
 		{
-			if(ContextServiceConfig.UniqueGroupGUIDEnabled)
+			if(ContextServiceConfig.uniqueGroupGUIDEnabled)
 			{
 				groupGUIDSyncMap = new HashMap<String, Boolean>();
 			}
@@ -162,14 +161,9 @@ public class RegionMappingBasedScheme extends AbstractScheme
 		}
 		
 		if(ContextServiceConfig.enableBulkLoading)
-		{
-//			BulkLoadDataInMySQLFromAFile bulkLoad 
-//					= new BulkLoadDataInMySQLFromAFile(this.getMyID(), 
-//							ContextServiceConfig.bulkLoadingFilePath, dataSource,
-//							regionMappingPolicy, this.allNodeIDs);
-			
+		{	
 			BulkLoadDataInMySQLUsingDumpSyntax bulkLoad 
-			= new BulkLoadDataInMySQLUsingDumpSyntax(this.getMyID(), 
+				= new BulkLoadDataInMySQLUsingDumpSyntax(this.getMyID(), 
 					ContextServiceConfig.bulkLoadingFilePath, dataSource,
 					regionMappingPolicy, this.allNodeIDs, 
 					((RegionMappingDataStorageDB)hyperspaceDB).getGUIDStorageInterface());
@@ -184,7 +178,7 @@ public class RegionMappingBasedScheme extends AbstractScheme
 			ProtocolEvent<PacketType, String> event,
 			ProtocolTask<Integer, PacketType, String>[] ptasks)
 	{
-		if(ContextServiceConfig.PROFILER_THREAD)
+		if(ContextServiceConfig.PROFILER_ENABLED)
 		{
 			profStats.incrementIncomingSearchRate();;
 		}
@@ -309,6 +303,7 @@ public class RegionMappingBasedScheme extends AbstractScheme
 		return null;
 	}
 	
+	
 	private void processQueryMsgFromUser
 		( QueryMsgFromUser queryMsgFromUser )
 	{
@@ -344,8 +339,8 @@ public class RegionMappingBasedScheme extends AbstractScheme
 		String hashKey = grpGUID+":"+userIP+":"+userPort;
 		// check for triggers, if those are enabled then forward the query to the node
 		// which consistently hashes the the query:userIp:userPort string
-		if( ContextServiceConfig.TRIGGER_ENABLED 
-				&& ContextServiceConfig.UniqueGroupGUIDEnabled )
+		if( ContextServiceConfig.triggerEnabled 
+				&& ContextServiceConfig.uniqueGroupGUIDEnabled )
 		{
 			
 			Integer respNodeId = Utils.getConsistentHashingNodeID(hashKey, this.allNodeIDs);
@@ -374,8 +369,8 @@ public class RegionMappingBasedScheme extends AbstractScheme
 					userIP, userPort, expiryTime );
 		
 		
-		if( ContextServiceConfig.TRIGGER_ENABLED && 
-					ContextServiceConfig.UniqueGroupGUIDEnabled )
+		if( ContextServiceConfig.triggerEnabled && 
+					ContextServiceConfig.uniqueGroupGUIDEnabled )
 	    {
 			synchronized(this.groupGUIDSyncMap)
 			{
@@ -403,7 +398,7 @@ public class RegionMappingBasedScheme extends AbstractScheme
 	    	storeQueryForTrigger = !found;
 	    	
 	    }
-		else if( ContextServiceConfig.TRIGGER_ENABLED )
+		else if( ContextServiceConfig.triggerEnabled )
 		{
 			storeQueryForTrigger = true;
 		}
@@ -411,6 +406,7 @@ public class RegionMappingBasedScheme extends AbstractScheme
 		guidAttrValProcessing.processQueryMsgFromUser
 										(currReq, storeQueryForTrigger);
 	}
+	
 	
 	private void processValueUpdateFromGNS( ValueUpdateFromGNS valueUpdateFromGNS )
 	{
@@ -422,10 +418,6 @@ public class RegionMappingBasedScheme extends AbstractScheme
 		// guid stored in primary subspace.
 		if( this.getMyID() != respNodeId )
 		{
-//			if(respNodeId >= 128)
-//			{
-//				System.out.println("ID greater than 128 "+respNodeId);
-//			}
 			ContextServiceLogger.getLogger().fine("not primary node case souceIp "
 													+ valueUpdateFromGNS.getSourceIP()
 													+ " sourcePort "
@@ -433,7 +425,8 @@ public class RegionMappingBasedScheme extends AbstractScheme
 			try
 			{
 				this.messenger.sendToID( respNodeId, valueUpdateFromGNS.toJSONObject() );
-			} catch (IOException e)
+			} 
+			catch (IOException e)
 			{
 				e.printStackTrace();
 			} catch (JSONException e)
@@ -442,12 +435,7 @@ public class RegionMappingBasedScheme extends AbstractScheme
 			}
 		}
 		else
-		{	
-//			if(respNodeId >= 128)
-//			{
-//				System.out.println("ID greater than 128 mesg recvd"+respNodeId);
-//			}
-			
+		{
 			// this piece of code takes care of consistency. Updates to a 
 			// GUID are serialized here. For a GUID only one update is outstanding at
 			// time. But multiple GUIDs can be updated in parallel.
@@ -593,9 +581,28 @@ public class RegionMappingBasedScheme extends AbstractScheme
 		}
 		else
 		{
-			//String tableName = "primarySubspaceDataStorage";
-			JSONObject valueJSON= this.hyperspaceDB.getGUIDStoredUsingHashIndex(GUID);
-			
+			Connection myConn = null;
+			JSONObject valueJSON = null;
+			try
+			{
+				myConn = this.dataSource.getConnection();
+				valueJSON= this.hyperspaceDB.getGUIDStoredUsingHashIndex(GUID, myConn);
+			}
+			catch(SQLException sqlex)
+			{
+				sqlex.printStackTrace();
+			}
+			finally
+			{
+				if(myConn != null)
+				{
+					try {
+						myConn.close();
+					} catch (SQLException e) {
+						e.printStackTrace();
+					}
+				}
+			}
 			
 			GetReplyMessage getReplyMessage = new GetReplyMessage(this.getMyID(),
 					getMessage.getUserReqID(), GUID, valueJSON);
@@ -613,6 +620,7 @@ public class RegionMappingBasedScheme extends AbstractScheme
 			}
 		}
 	}
+	
 	
 	private void processValueUpdateToSubspaceRegionMessageReply
 		( ValueUpdateToSubspaceRegionReplyMessage 
@@ -660,7 +668,7 @@ public class RegionMappingBasedScheme extends AbstractScheme
 				e.printStackTrace();
 			}
 			
-			if(ContextServiceConfig.TRIGGER_ENABLED)
+			if(ContextServiceConfig.triggerEnabled)
 			{
 				try
 				{
@@ -676,17 +684,23 @@ public class RegionMappingBasedScheme extends AbstractScheme
 				}
 			}
 			
-			
 			UpdateInfo removedUpdate 
-					=  pendingUpdateRequests.remove(requestID);;
+					=  pendingUpdateRequests.remove(requestID);
 			
 			// starts the queues serialized updates for that guid
 			if(removedUpdate != null)
 			{
 				startANewUpdate(removedUpdate, requestID);
+				
+				if(ContextServiceConfig.PROFILER_ENABLED)
+				{
+					removedUpdate.getUpdateStats().setUpdateFinishTime();
+					profStats.addUpdateStats(removedUpdate.getUpdateStats());
+				}
 			}
 		}
 	}
+	
 	
 	private void startANewUpdate(UpdateInfo removedUpdate, long requestID)
 	{
@@ -803,12 +817,7 @@ public class RegionMappingBasedScheme extends AbstractScheme
 	
 	private void processQueryMesgToSubspaceRegion(QueryMesgToSubspaceRegion 
 														queryMesgToSubspaceRegion)
-	{
-		if(ContextServiceConfig.PROFILER_THREAD)
-		{
-			profStats.incrementNumSearchesAttrIndex();;
-		}
-		
+	{	
 		String groupGUID 			 = queryMesgToSubspaceRegion.getGroupGUID();
 		boolean storeQueryForTrigger = queryMesgToSubspaceRegion.getStoreQueryForTrigger();
 		
@@ -823,7 +832,7 @@ public class RegionMappingBasedScheme extends AbstractScheme
 		
 		if(storeQueryForTrigger)
 		{
-			assert(ContextServiceConfig.TRIGGER_ENABLED);
+			assert(ContextServiceConfig.triggerEnabled);
 			this.triggerProcessing.processQuerySubspaceRegionMessageForTrigger
 					(queryMesgToSubspaceRegion);	
 		}
@@ -850,16 +859,10 @@ public class RegionMappingBasedScheme extends AbstractScheme
 				+queryMesgToSubspaceRegion.getSender());
 	}
 	
-	
 	private void processValueUpdateToSubspaceRegionMessage(
 				ValueUpdateToSubspaceRegionMessage 
 				valueUpdateToSubspaceRegionMessage )
-	{
-		if(ContextServiceConfig.PROFILER_THREAD)
-		{
-			profStats.incrementNumUpdatesAttrIndex();
-		}
-		
+	{	
 		this.guidAttrValProcessing.processValueUpdateToSubspaceRegionMessage
 					( valueUpdateToSubspaceRegionMessage);
 		
@@ -871,7 +874,7 @@ public class RegionMappingBasedScheme extends AbstractScheme
 		JSONArray toBeRemovedGroups = new JSONArray();
 		JSONArray toBeAddedGroups = new JSONArray();
 		
-		if( ContextServiceConfig.TRIGGER_ENABLED )
+		if( ContextServiceConfig.triggerEnabled )
 		{
 			// sending triggers right here.
 			try

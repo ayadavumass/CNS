@@ -49,7 +49,7 @@ public class HyperspaceBasedSymmetricKeyAnonymizedIDCreator
 		anonymizedIDRand				
 			= new Random(Utils.getActiveInterfaceInetAddresses().get(0).hashCode());
 		
-		symmKeyGen = KeyGenerator.getInstance(ContextServiceConfig.SymmetricEncAlgorithm);
+		symmKeyGen = KeyGenerator.getInstance(ContextServiceConfig.SYMMETRIC_ENC_ALGORITHM);
 	}
 	
 	
@@ -57,7 +57,7 @@ public class HyperspaceBasedSymmetricKeyAnonymizedIDCreator
 	{
 		anonymizedIDRand = randGenerator;
 		
-		symmKeyGen = KeyGenerator.getInstance(ContextServiceConfig.SymmetricEncAlgorithm);
+		symmKeyGen = KeyGenerator.getInstance(ContextServiceConfig.SYMMETRIC_ENC_ALGORITHM);
 	}
 	
 	@Override

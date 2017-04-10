@@ -1,6 +1,7 @@
 package edu.umass.cs.contextservice.database;
 
 import java.net.UnknownHostException;
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.HashMap;
 
@@ -16,6 +17,7 @@ import edu.umass.cs.contextservice.database.triggers.GroupGUIDInfoClass;
 import edu.umass.cs.contextservice.database.triggers.TriggerInformationStorage;
 import edu.umass.cs.contextservice.database.triggers.TriggerInformationStorageInterface;
 import edu.umass.cs.contextservice.logging.ContextServiceLogger;
+import edu.umass.cs.contextservice.profilers.CNSProfiler;
 import edu.umass.cs.contextservice.regionmapper.helper.AttributeValueRange;
 
 
@@ -62,21 +64,27 @@ public class RegionMappingDataStorageDB extends AbstractDataStorageDB
 	private final GUIDStorageInterface guidAttributesStorage;
 	private  TriggerInformationStorageInterface triggerInformationStorage;
 	
-	//private final Random randomGen;
+	private final CNSProfiler cnsprofiler;
 	
-	public RegionMappingDataStorageDB( Integer myNodeID, AbstractDataSource abstractDataSource )
+	private AbstractDataSource dataSource;
+	
+	public RegionMappingDataStorageDB( Integer myNodeID, 
+			AbstractDataSource abstractDataSource, CNSProfiler cnsProfiler)
 			throws Exception
 	{	
-		guidAttributesStorage = new SQLGUIDStorage
-							(myNodeID, abstractDataSource);
+		this.dataSource = abstractDataSource;
+		this.cnsprofiler = cnsProfiler;
 		
-		if( ContextServiceConfig.TRIGGER_ENABLED )
+		guidAttributesStorage = new SQLGUIDStorage
+							(myNodeID, abstractDataSource, cnsprofiler );
+		
+		if( ContextServiceConfig.triggerEnabled )
 		{
 			// Currently it is assumed that there are only conjunctive queries
 			// DNF form queries can be added by inserting its multiple conjunctive 
 			// components.
 			ContextServiceLogger.getLogger().fine( "HyperspaceMySQLDB "
-					+ " TRIGGER_ENABLED "+ContextServiceConfig.TRIGGER_ENABLED );
+					+ " TRIGGER_ENABLED "+ContextServiceConfig.triggerEnabled );
 			triggerInformationStorage = new TriggerInformationStorage
 											(myNodeID , abstractDataSource);
 		}
@@ -84,6 +92,10 @@ public class RegionMappingDataStorageDB extends AbstractDataStorageDB
 		createTables();
 	}
 	
+	public AbstractDataSource getDataSource()
+	{
+		return this.dataSource;
+	}
 	
 	public GUIDStorageInterface getGUIDStorageInterface()
 	{
@@ -103,27 +115,13 @@ public class RegionMappingDataStorageDB extends AbstractDataStorageDB
 		// so not a bottleneck.
 		guidAttributesStorage.createDataStorageTables();
 		
-		if( ContextServiceConfig.TRIGGER_ENABLED )
+		if( ContextServiceConfig.triggerEnabled )
 		{
 			// currently it is assumed that there are only conjunctive queries
 			// DNF form queries can be added by inserting its multiple conjunctive components.			
 			triggerInformationStorage.createTriggerStorageTables();
 		}
 	}
-	
-	/**
-	 * Returns a list of regions/nodes that overlap with a query in a given subspace.
-	 * @param subspaceNum
-	 * @param qcomponents, takes matching attributes as input
-	 * @return
-	 */
-//	public HashMap<Integer, RegionInfoClass> 
-//		getOverlappingRegionsInSubspace(int subspaceId, int replicaNum, 
-//				HashMap<String, ProcessingQueryComponent> matchingQueryComponents)
-//	{
-//		return this.guidAttributesStorage.getOverlappingRegionsInSubspace
-//							(subspaceId, replicaNum, matchingQueryComponents);
-//	}
 	
 	/**
 	 * This function is implemented here as it involves 
@@ -136,26 +134,17 @@ public class RegionMappingDataStorageDB extends AbstractDataStorageDB
 	public int processSearchQueryUsingAttrIndex( HashMap<String, AttributeValueRange> 
 			queryAttrValRange, JSONArray resultArray )
 	{
-		long start = System.currentTimeMillis();
 		int resultSize 
 			= this.guidAttributesStorage.processSearchQueryUsingAttrIndex
 												(queryAttrValRange, resultArray);
 		
-		long end = System.currentTimeMillis();
-		
-		if( ContextServiceConfig.DEBUG_MODE )
-		{
-			System.out.println("TIME_DEBUG: processSearchQueryInSubspaceRegion "
-					+ " without privacy time "
-					+ (end-start));
-		}
 		return resultSize;	
 	}
 	
-	public JSONObject getGUIDStoredUsingHashIndex( String guid )
+	public JSONObject getGUIDStoredUsingHashIndex( String guid, Connection myConn )
 	{
 		JSONObject valueJSON 
-						= this.guidAttributesStorage.getGUIDStoredUsingHashIndex(guid);
+						= this.guidAttributesStorage.getGUIDStoredUsingHashIndex(guid, myConn);
 		return valueJSON;
 	}
 	
@@ -201,19 +190,10 @@ public class RegionMappingDataStorageDB extends AbstractDataStorageDB
 	}
 	
 	public void storeGUIDUsingHashIndex( String nodeGUID, 
-    		JSONObject jsonToWrite, int updateOrInsert ) throws JSONException
-	{	
-		long start = System.currentTimeMillis();
+    		JSONObject jsonToWrite, int updateOrInsert, Connection myConn ) throws JSONException
+	{
 		this.guidAttributesStorage.storeGUIDUsingHashIndex
-			( nodeGUID, jsonToWrite, updateOrInsert);
-		
-		long end = System.currentTimeMillis();
-		
-		if( ContextServiceConfig.DEBUG_MODE )
-		{
-			System.out.println
-				( "storeGUIDInPrimarySubspace "+(end-start) );
-		}
+			( nodeGUID, jsonToWrite, updateOrInsert, myConn);
 	}
 	
 	/**
@@ -231,29 +211,13 @@ public class RegionMappingDataStorageDB extends AbstractDataStorageDB
     		JSONObject jsonToWrite, int updateOrInsert) throws JSONException
     {	
 		// no need to add realIDEntryption Info in primary subspaces.
-		long start = System.currentTimeMillis();
 		this.guidAttributesStorage.storeGUIDUsingAttrIndex
 					(tableName, nodeGUID, jsonToWrite, updateOrInsert);
-		long end = System.currentTimeMillis();
-		
-		if( ContextServiceConfig.DEBUG_MODE )
-		{
-			System.out.println
-				( "storeGUIDInSubspace without privacy storage "+(end-start) );
-		}
     }
 	
 	public void deleteGUIDFromTable(String tableName, String nodeGUID)
-	{	
-		long start = System.currentTimeMillis();
+	{
 		this.guidAttributesStorage.deleteGUIDFromTable(tableName, nodeGUID);
-		long end = System.currentTimeMillis();
-		
-		if(ContextServiceConfig.DEBUG_MODE)
-		{
-			System.out.println("deleteGUIDFromSubspaceRegion without "
-					+ "privacy storage "+(end-start));
-		}
 	}
 	
 	public boolean checkAndInsertSearchQueryRecordFromPrimaryTriggerSubspace( String groupGUID, 

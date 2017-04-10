@@ -1,5 +1,6 @@
 package edu.umass.cs.contextservice.database.guidattributes;
 
+import java.sql.Connection;
 import java.util.HashMap;
 
 import org.json.JSONArray;
@@ -24,10 +25,10 @@ public interface GUIDStorageInterface
 						( HashMap<String, AttributeValueRange> queryAttrValMap, 
 								JSONArray resultArray);
 	
-	public JSONObject getGUIDStoredUsingHashIndex( String guid );
+	public JSONObject getGUIDStoredUsingHashIndex( String guid, Connection myConn );
 	
 	public void storeGUIDUsingHashIndex(String nodeGUID, JSONObject jsonToWrite, 
-    		int updateOrInsert ) throws JSONException;
+    		int updateOrInsert, Connection myConn) throws JSONException;
 	
 	public void storeGUIDUsingAttrIndex( String tableName, String nodeGUID, 
     		JSONObject updatedAttrValMap, int updateOrInsert )

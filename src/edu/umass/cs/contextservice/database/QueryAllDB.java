@@ -19,7 +19,6 @@ import edu.umass.cs.contextservice.config.ContextServiceConfig;
 import edu.umass.cs.contextservice.database.datasource.MySQLDataSource;
 import edu.umass.cs.contextservice.database.datasource.SQLiteDataSource;
 import edu.umass.cs.contextservice.database.datasource.AbstractDataSource;
-import edu.umass.cs.contextservice.database.datasource.AbstractDataSource.DB_REQUEST_TYPE;
 import edu.umass.cs.contextservice.logging.ContextServiceLogger;
 import edu.umass.cs.contextservice.messages.dataformat.SearchReplyGUIDRepresentationJSON;
 import edu.umass.cs.contextservice.queryparsing.QueryParser;
@@ -45,7 +44,7 @@ public class QueryAllDB
 	{
 		if(ContextServiceConfig.sqlDBType == ContextServiceConfig.SQL_DB_TYPE.MYSQL)
 		{
-			this.dataSource = new MySQLDataSource(myNodeID);
+			this.dataSource = new MySQLDataSource(myNodeID, null);
 		}
 		else if(ContextServiceConfig.sqlDBType == ContextServiceConfig.SQL_DB_TYPE.SQLITE)
 		{
@@ -66,7 +65,7 @@ public class QueryAllDB
 		
 		try
 		{
-			myConn = dataSource.getConnection(DB_REQUEST_TYPE.UPDATE);
+			myConn = dataSource.getConnection();
 			stmt   = myConn.createStatement();
 			
 			String tableName = RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME;
@@ -161,11 +160,11 @@ public class QueryAllDB
 		int resultSize = 0;
 		try
 		{
-			myConn = this.dataSource.getConnection(DB_REQUEST_TYPE.SELECT);
+			myConn = this.dataSource.getConnection();
 			// for row by row fetching, otherwise default is fetching whole result
 			// set in memory. 
 			// http://dev.mysql.com/doc/connector-j/en/connector-j-reference-implementation-notes.html
-			if( ContextServiceConfig.rowByRowFetchingEnabled )
+			if( ContextServiceConfig.ROW_BY_ROW_FETCHING_ENABLED )
 			{
 				stmt   = myConn.createStatement(java.sql.ResultSet.TYPE_FORWARD_ONLY, 
 					java.sql.ResultSet.CONCUR_READ_ONLY);
@@ -197,10 +196,11 @@ public class QueryAllDB
 					
 					String anonymizedIDToGUIDMapping = null;
 					JSONArray anonymizedIDToGuidArray = null;
-					if( ContextServiceConfig.PRIVACY_ENABLED )
+					if( ContextServiceConfig.privacyEnabled )
 					{
 						anonymizedIDToGUIDMapping 
-							= rs.getString(RegionMappingDataStorageDB.anonymizedIDToGUIDMappingColName);
+							= rs.getString(
+								RegionMappingDataStorageDB.anonymizedIDToGUIDMappingColName);
 						
 						if(anonymizedIDToGUIDMapping != null)
 						{
@@ -250,7 +250,7 @@ public class QueryAllDB
 				}
 				else
 				{
-					if(ContextServiceConfig.onlyResultCountEnable)
+					if(ContextServiceConfig.ONLY_RESULT_COUNT_ENABLE)
 					{
 						resultSize = rs.getInt("RESULT_SIZE");
 					}
@@ -306,7 +306,7 @@ public class QueryAllDB
 		
 		// if privacy is enabled then we also fetch 
 		// anonymizedIDToGuidMapping set.
-		if(ContextServiceConfig.PRIVACY_ENABLED)
+		if(ContextServiceConfig.privacyEnabled)
 		{
 			mysqlQuery = "SELECT nodeGUID , "
 						+RegionMappingDataStorageDB.anonymizedIDToGUIDMappingColName
@@ -314,7 +314,7 @@ public class QueryAllDB
 		}
 		else
 		{
-			if(ContextServiceConfig.onlyResultCountEnable)
+			if(ContextServiceConfig.ONLY_RESULT_COUNT_ENABLE)
 			{
 				mysqlQuery = "SELECT COUNT(nodeGUID) AS RESULT_SIZE from "
 								+tableName+" WHERE ( ";
@@ -431,9 +431,9 @@ public class QueryAllDB
 		
 		try
 		{
-			myConn = this.dataSource.getConnection(DB_REQUEST_TYPE.SELECT);
+			myConn = this.dataSource.getConnection();
 			stmt = myConn.createStatement();
-			long start = System.currentTimeMillis();
+			
 			ResultSet rs = stmt.executeQuery(selectQuery);
 			
 			while( rs.next() )
@@ -457,12 +457,7 @@ public class QueryAllDB
 				}
 			}
 			rs.close();	
-			long end = System.currentTimeMillis();
-			if(ContextServiceConfig.DEBUG_MODE)
-			{
-				System.out.println("TIME_DEBUG: getGUIDStoredInPrimarySubspace "
-										+(end-start));
-			}
+			
 		} catch (SQLException e)
 		{
 			e.printStackTrace();
@@ -558,19 +553,11 @@ public class QueryAllDB
             
 	        updateSqlQuery = updateSqlQuery + " WHERE nodeGUID = X'"+nodeGUID+"'";
             
-            myConn = this.dataSource.getConnection(DB_REQUEST_TYPE.UPDATE);
+            myConn = this.dataSource.getConnection();
             stmt = myConn.createStatement();
             
         	// if update fails then insert
-    		long start   = System.currentTimeMillis();
         	int rowCount = stmt.executeUpdate(updateSqlQuery);
-        	long end     = System.currentTimeMillis();
-        	
-        	if(ContextServiceConfig.DEBUG_MODE)
-        	{
-        		System.out.println("TIME_DEBUG: performStoreGUIDInPrimarySubspaceUpdate "
-        						+(end-start));
-        	}
         	
         	//ContextServiceLogger.getLogger().fine(this.myNodeID+" EXECUTING UPDATE rowCount "+rowCount);
         	// update failed try insert
@@ -669,19 +656,11 @@ public class QueryAllDB
 			insertQuery = insertQuery +" , X'"+nodeGUID+"' )";
 			
     		
-    		myConn = this.dataSource.getConnection(DB_REQUEST_TYPE.UPDATE);
+    		myConn = this.dataSource.getConnection();
             stmt = myConn.createStatement();  
             
     		ContextServiceLogger.getLogger().fine(" EXECUTING INSERT "+insertQuery);
-    		long start   = System.currentTimeMillis();
     		int rowCount = stmt.executeUpdate(insertQuery);
-    		long end     = System.currentTimeMillis();
-    		
-    		if( ContextServiceConfig.DEBUG_MODE )
-        	{
-    			System.out.println("TIME_DEBUG: performStoreGUIDInPrimarySubspaceInsert "
-        															+(end-start) );
-        	}
     		
     		ContextServiceLogger.getLogger().fine(" EXECUTING INSERT rowCount "+rowCount
     					+" insertQuery "+insertQuery);	

@@ -21,31 +21,18 @@ public class SQLiteDataSource extends AbstractDataSource
     	searchPool.setJdbcUrl("jdbc:sqlite:file:contextdb"+myNodeID+"?mode=memory");
     	
 
-    	searchPool.setMaxPoolSize(ContextServiceConfig.MYSQL_MAX_CONNECTIONS);
+    	searchPool.setMaxPoolSize(ContextServiceConfig.mysqlMaxConnections);
     	searchPool.setAutoCommitOnClose(true);
-//    	Connection conn;
-//		
-//    	try {
-//			conn = searchPool.getConnection();
-//			Statement stmt = conn.createStatement();
-//	    	stmt.execute("pragma journal_mode=wal");
-//	    	
-//	    	stmt.close();
-//	    	conn.close();
-//		} catch (SQLException e) 
-//		{
-//			e.printStackTrace();
-//		}
     }
 
-    public Connection getConnection(DB_REQUEST_TYPE dbReqType) throws SQLException 
+    public Connection getConnection() throws SQLException 
     {
     	return searchPool.getConnection();
     }
 
 	@Override
-	public String getCmdLineConnString() {
-		// TODO Auto-generated method stub
+	public String getCmdLineConnString() 
+	{
 		return null;
 	}
 }

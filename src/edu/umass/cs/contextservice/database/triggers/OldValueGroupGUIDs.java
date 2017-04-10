@@ -13,7 +13,6 @@ import org.json.JSONObject;
 
 import edu.umass.cs.contextservice.database.RegionMappingDataStorageDB;
 import edu.umass.cs.contextservice.database.datasource.AbstractDataSource;
-import edu.umass.cs.contextservice.database.datasource.AbstractDataSource.DB_REQUEST_TYPE;
 import edu.umass.cs.contextservice.logging.ContextServiceLogger;
 import edu.umass.cs.contextservice.schemes.RegionMappingBasedScheme;
 import edu.umass.cs.contextservice.utils.Utils;
@@ -96,7 +95,7 @@ public class OldValueGroupGUIDs implements Runnable
 			
 			ContextServiceLogger.getLogger().fine("returnOldValueGroupGUIDs getTriggerInfo "
 												+removedGroupQuery);
-			myConn 	     = dataSource.getConnection(DB_REQUEST_TYPE.SELECT);
+			myConn 	     = dataSource.getConnection();
 			stmt   		 = myConn.createStatement();
 			
 			ResultSet rs = stmt.executeQuery(removedGroupQuery);

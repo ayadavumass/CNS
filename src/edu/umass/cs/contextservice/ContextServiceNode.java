@@ -38,7 +38,7 @@ public abstract class ContextServiceNode
 			new JSONMessenger<Integer>(jio);
 		
 		
-		if(ContextServiceConfig.QUERY_ALL_ENABLED)
+		if(ContextServiceConfig.queryAllEnabled)
 		{
 			this.contextservice = new QueryAllScheme(nc, messenger);
 		}

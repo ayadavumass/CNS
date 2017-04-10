@@ -1,7 +1,5 @@
 package edu.umass.cs.contextservice.test;
 
-import java.security.KeyPairGenerator;
-
 import edu.umass.cs.contextservice.client.ContextServiceClient;
 import edu.umass.cs.contextservice.config.ContextServiceConfig;
 import edu.umass.cs.contextservice.nodeApp.StartContextServiceNode;
@@ -18,10 +16,10 @@ public class UberCaseStudyTesting {
 		// setting all config parameters for the test.
 		ContextServiceConfig.sendFullRepliesToClient 	= true;
 		ContextServiceConfig.sendFullRepliesWithinCS 	= true;
-		ContextServiceConfig.TRIGGER_ENABLED 			= false;
-		ContextServiceConfig.UniqueGroupGUIDEnabled     = false;
-		ContextServiceConfig.PRIVACY_ENABLED			= false;
-		ContextServiceConfig.IN_MEMORY_MYSQL			= false;
+		ContextServiceConfig.triggerEnabled 			= false;
+		ContextServiceConfig.uniqueGroupGUIDEnabled     = false;
+		ContextServiceConfig.privacyEnabled				= false;
+		ContextServiceConfig.inMemoryMySQL				= false;
 		// false because in experiment mode full triggers are
 		// not returned to client so they client doesn't become bottleneck.
 		ContextServiceClient.EXPERIMENT_MODE            = false;

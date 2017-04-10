@@ -60,7 +60,7 @@ public class QueryAllScheme extends AbstractScheme
 	{
 		super(nc, m);
 		
-		nodeES = Executors.newFixedThreadPool(ContextServiceConfig.THREAD_POOL_SIZE);
+		nodeES = Executors.newFixedThreadPool(ContextServiceConfig.threadPoolSize);
 		
 		guidUpdateInfoMap = new HashMap<String, GUIDUpdateInfo>();
 		
@@ -367,26 +367,14 @@ public class QueryAllScheme extends AbstractScheme
 		JSONObject attrValuePairs 
 						 		= updateReq.getValueUpdateFromGNS().getAttrValuePairs();
 		long requestID 	 		= updateReq.getRequestId();
-		long updateStartTime	= updateReq.getValueUpdateFromGNS().getUpdateStartTime();
-		
 		
 		// get the old value and process the update in primary subspace and other subspaces.
 		String tableName = RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME;
 		
 		try
 		{
-			long start 	 = System.currentTimeMillis();
-			// FIXME: fetch only those attributes which are specified in the updated attrs.
 			JSONObject oldValueJSON 	
 						 = this.queryAllDB.getGUIDStoredInPrimarySubspace(GUID);
-			
-			long end 	 = System.currentTimeMillis();
-			
-			if(ContextServiceConfig.DEBUG_MODE)
-			{
-				System.out.println("getGUIDStoredInPrimarySubspace time "+(end-start)
-							+" since upd start"+(end-updateStartTime));
-			}
 			
 			int updateOrInsert 			= -1;
 			
@@ -405,12 +393,6 @@ public class QueryAllScheme extends AbstractScheme
 			// sending null means anonymizedIDToGuidMapping will not be inserted again.
 			this.queryAllDB.storeGUIDInPrimarySubspace
 			( tableName, GUID, attrValuePairs, updateOrInsert);
-			
-			if(ContextServiceConfig.DEBUG_MODE)
-			{
-				long now = System.currentTimeMillis();
-				System.out.println("primary subspace update complete "+(now-updateStartTime));
-			}
 			
 			ValueUpdateFromGNSReply valueUpdateFromGNSReply
 				= new ValueUpdateFromGNSReply

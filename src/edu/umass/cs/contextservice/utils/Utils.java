@@ -345,13 +345,13 @@ public class Utils
 			IllegalBlockSizeException, BadPaddingException
 	{
 		SecretKey keyObj = new SecretKeySpec(symmetricKey, 0, symmetricKey.length, 
-				ContextServiceConfig.SymmetricEncAlgorithm);
+				ContextServiceConfig.SYMMETRIC_ENC_ALGORITHM);
 		
 		//TODO: need to check how much overhead is creating a cipher everytime.
 		// GNS has a list of pre created ciphers which are used in a mutually exclusive manner.
 		// If Cipher.getInstance has overhead than CNS code also needs to have a list of pre created 
 		// ciphers.
-		Cipher c = Cipher.getInstance(ContextServiceConfig.SymmetricEncAlgorithm);
+		Cipher c = Cipher.getInstance(ContextServiceConfig.SYMMETRIC_ENC_ALGORITHM);
 		c.init(Cipher.ENCRYPT_MODE, keyObj);
 		
 		return c.doFinal(plainTextByteArray);
@@ -374,9 +374,9 @@ public class Utils
 			IllegalBlockSizeException, BadPaddingException
 	{	
 		SecretKey keyObj = new SecretKeySpec(symmetricKey, 0, symmetricKey.length, 
-				ContextServiceConfig.SymmetricEncAlgorithm);
+				ContextServiceConfig.SYMMETRIC_ENC_ALGORITHM);
 		
-		Cipher c = Cipher.getInstance(ContextServiceConfig.SymmetricEncAlgorithm);
+		Cipher c = Cipher.getInstance(ContextServiceConfig.SYMMETRIC_ENC_ALGORITHM);
 		c.init(Cipher.DECRYPT_MODE, keyObj);
 		return c.doFinal(encryptedByteArray);
 	}

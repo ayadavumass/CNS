@@ -99,13 +99,6 @@ public class HyperspaceBasedASymmetricKeyCSTransform implements CSPrivacyTransfo
 				new ParallelSearchReplyASymmetricKeyDecryption(myGuid , csTransformedList
 						, replyArray, exectutorService);
 		parallelSearchDecryption.doDecryption();
-		
-		if( ContextServiceConfig.DEBUG_MODE )
-		{
-//			System.out.println
-//				("Total decryptions "+parallelSearchDecryption.getTotalDecryptionsOverall()
-//				+" replyArray size "+replyArray.length());
-		}
 	}
 	
 	@Override

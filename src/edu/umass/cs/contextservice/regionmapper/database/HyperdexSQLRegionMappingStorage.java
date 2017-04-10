@@ -14,7 +14,6 @@ import edu.umass.cs.contextservice.attributeInfo.AttributeTypes;
 import edu.umass.cs.contextservice.config.ContextServiceConfig;
 import edu.umass.cs.contextservice.config.ContextServiceConfig.SQL_DB_TYPE;
 import edu.umass.cs.contextservice.database.datasource.AbstractDataSource;
-import edu.umass.cs.contextservice.database.datasource.AbstractDataSource.DB_REQUEST_TYPE;
 import edu.umass.cs.contextservice.hyperspace.storage.AttributePartitionInfo;
 import edu.umass.cs.contextservice.hyperspace.storage.SubspaceInfo;
 import edu.umass.cs.contextservice.regionmapper.helper.AttributeValueRange;
@@ -41,7 +40,7 @@ public class HyperdexSQLRegionMappingStorage extends AbstractRegionMappingStorag
 		
 		try
 		{
-			myConn = dataSource.getConnection(DB_REQUEST_TYPE.UPDATE);
+			myConn = dataSource.getConnection();
 			stmt   = myConn.createStatement();
 			Iterator<Integer> subspaceIter 
 							= this.subspaceInfoMap.keySet().iterator();
@@ -93,7 +92,7 @@ public class HyperdexSQLRegionMappingStorage extends AbstractRegionMappingStorag
 					newTableCommand = newTableCommand +" )";
 					
 					if( (ContextServiceConfig.sqlDBType == SQL_DB_TYPE.MYSQL) 
-							&& (ContextServiceConfig.IN_MEMORY_MYSQL) )
+							&& (ContextServiceConfig.inMemoryMySQL) )
 					{
 						newTableCommand = newTableCommand +" ENGINE = MEMORY";
 					}
@@ -215,7 +214,7 @@ public class HyperdexSQLRegionMappingStorage extends AbstractRegionMappingStorag
 		
 		try
 		{
-			myConn = this.dataSource.getConnection(DB_REQUEST_TYPE.SELECT);
+			myConn = this.dataSource.getConnection();
 			stmt = myConn.createStatement();
 
 			ResultSet rs = stmt.executeQuery(selectTableSQL);
@@ -295,7 +294,7 @@ public class HyperdexSQLRegionMappingStorage extends AbstractRegionMappingStorag
 		
 		try
 		{
-			myConn = this.dataSource.getConnection(DB_REQUEST_TYPE.SELECT);
+			myConn = this.dataSource.getConnection();
 			stmt = myConn.createStatement();
 
 			ResultSet rs = stmt.executeQuery(selectTableSQL);
@@ -383,7 +382,7 @@ public class HyperdexSQLRegionMappingStorage extends AbstractRegionMappingStorag
 		
 		try
 		{
-			myConn = this.dataSource.getConnection(DB_REQUEST_TYPE.UPDATE);
+			myConn = this.dataSource.getConnection();
 			stmt = myConn.createStatement();
 
 			// execute insert SQL stetement

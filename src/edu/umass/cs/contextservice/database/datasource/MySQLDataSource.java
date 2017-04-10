@@ -13,17 +13,23 @@ import com.mchange.v2.c3p0.ComboPooledDataSource;
 
 import edu.umass.cs.contextservice.config.ContextServiceConfig;
 import edu.umass.cs.contextservice.logging.ContextServiceLogger;
+import edu.umass.cs.contextservice.profilers.CNSProfiler;
 
 public class MySQLDataSource extends AbstractDataSource
 {
 	private final HashMap<Integer, SQLNodeInfo> sqlNodeInfoMap;
 	
-    private ComboPooledDataSource cpds;
+    private ComboPooledDataSource dataSource;
     private final int myNodeId;
-
-    public MySQLDataSource(Integer myNodeID) throws IOException, SQLException, PropertyVetoException 
+    
+    private final CNSProfiler profStats;
+    
+    
+    public MySQLDataSource(Integer myNodeID, CNSProfiler profStats) throws IOException, SQLException, PropertyVetoException 
     {
     	myNodeId = myNodeID;
+    	this.profStats = profStats;
+    			
     	this.sqlNodeInfoMap = new HashMap<Integer, SQLNodeInfo>();
     	readDBNodeSetup();
     	
@@ -33,24 +39,28 @@ public class MySQLDataSource extends AbstractDataSource
     	String password = sqlNodeInfoMap.get(myNodeID).password;
     	String arguments = sqlNodeInfoMap.get(myNodeID).arguments;
     	
-    	dropDB(sqlNodeInfoMap.get(myNodeID));
-    	createDB(sqlNodeInfoMap.get(myNodeID));
+    	if(ContextServiceConfig.dropLocalDB)
+    	{
+    		dropLocalDB();
+    	}
+    	
+    	createLocalDB();
     	
     	
-        cpds = new ComboPooledDataSource();
-        cpds.setDriverClass("com.mysql.jdbc.Driver"); //loads the jdbc driver
+    	dataSource = new ComboPooledDataSource();
+    	dataSource.setDriverClass("com.mysql.jdbc.Driver"); //loads the jdbc driver
         if(arguments.length() > 0)
         {
-        	cpds.setJdbcUrl("jdbc:mysql://localhost:"+portNum+"/"+dbName+"?"+arguments);
+        	dataSource.setJdbcUrl("jdbc:mysql://localhost:"+portNum+"/"+dbName+"?"+arguments);
         }
         else
         {
-        	cpds.setJdbcUrl("jdbc:mysql://localhost:"+portNum+"/"+dbName);
+        	dataSource.setJdbcUrl("jdbc:mysql://localhost:"+portNum+"/"+dbName);
         }
         
         
-        cpds.setUser(username);
-        cpds.setPassword(password);
+        dataSource.setUser(username);
+        dataSource.setPassword(password);
 
         //the settings below are optional -- c3p0 can work with defaults
         //cpds.setMinPoolSize(5);
@@ -64,25 +74,33 @@ public class MySQLDataSource extends AbstractDataSource
         // actually default mysql server max connection is 151. So this should be
         // set in conjuction with that. and also the hyperpsace hashing thread pool
         // size should be set greater than that. These things affect system performance a lot.
-        cpds.setMaxPoolSize(ContextServiceConfig.MYSQL_MAX_CONNECTIONS);
-        cpds.setAutoCommitOnClose(false);
+        dataSource.setMinPoolSize(ContextServiceConfig.mysqlMaxConnections);
+        dataSource.setMaxPoolSize(ContextServiceConfig.mysqlMaxConnections);
+        System.out.println("Max idle time before "+dataSource.getMaxIdleTime());
+        
+        //dataSource.setMaxIdleTime(0);
+        
+        dataSource.setAutoCommitOnClose(false);
+        
         //cpds.setMaxStatements(180);
         ContextServiceLogger.getLogger().fine("HyperspaceMySQLDB datasource "
-        		+ "max pool size "+cpds.getMaxPoolSize());
+        		+ "max pool size "+dataSource.getMaxPoolSize());
     }
-    
 
-    public Connection getConnection(DB_REQUEST_TYPE dbReqType) throws SQLException 
+    public Connection getConnection() throws SQLException 
     {
     	long start = System.currentTimeMillis();
-    	Connection conn = this.cpds.getConnection();
-    	if(ContextServiceConfig.DEBUG_MODE)
+    	Connection conn = this.dataSource.getConnection();
+    	long end = System.currentTimeMillis();
+    	
+    	if(ContextServiceConfig.PROFILER_ENABLED)
     	{
-    		System.out.println("TIME_DEBUG getConnection "
-    							+(System.currentTimeMillis()-start));	
+    		profStats.addGetConnectionTime((end-start));
     	}
+    	
         return conn;
     }
+    
     
     @Override
 	public String getCmdLineConnString() 
@@ -134,8 +152,9 @@ public class MySQLDataSource extends AbstractDataSource
 		reader.close();
 	}
 	
-	private void createDB(SQLNodeInfo sqlInfo)
+	private void createLocalDB()
     {
+		SQLNodeInfo sqlInfo = sqlNodeInfoMap.get(myNodeId);
     	Connection conn = null;
     	Statement stmt = null;
     	try
@@ -156,7 +175,7 @@ public class MySQLDataSource extends AbstractDataSource
 
 		    stmt = conn.createStatement();
 		    
-		    String sql = "CREATE DATABASE "+sqlInfo.databaseName;
+		    String sql = "CREATE DATABASE IF NOT EXISTS "+sqlInfo.databaseName;
 		    stmt.executeUpdate(sql);
 		    
     	}
@@ -190,10 +209,11 @@ public class MySQLDataSource extends AbstractDataSource
     	    }
     	}
     }
+	
     
-    
-    private void dropDB(SQLNodeInfo sqlInfo)
+    public void dropLocalDB()
     {
+    	SQLNodeInfo sqlInfo = sqlNodeInfoMap.get(myNodeId);
     	Connection conn = null;
     	Statement stmt = null;
     	try

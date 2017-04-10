@@ -16,7 +16,6 @@ import edu.umass.cs.contextservice.attributeInfo.AttributeTypes;
 import edu.umass.cs.contextservice.config.ContextServiceConfig;
 import edu.umass.cs.contextservice.database.RegionMappingDataStorageDB;
 import edu.umass.cs.contextservice.database.datasource.AbstractDataSource;
-import edu.umass.cs.contextservice.database.datasource.AbstractDataSource.DB_REQUEST_TYPE;
 import edu.umass.cs.contextservice.logging.ContextServiceLogger;
 import edu.umass.cs.contextservice.regionmapper.AbstractRegionMappingPolicy;
 import edu.umass.cs.contextservice.regionmapper.helper.AttributeValueRange;
@@ -296,7 +295,7 @@ public class BulkLoadDataInMySQLFromAFile
 			Statement  stmt    = null;
 			try
 			{
-				myConn = dataSource.getConnection(DB_REQUEST_TYPE.UPDATE);
+				myConn = dataSource.getConnection();
 				stmt   = myConn.createStatement();
 				
 				long start = System.currentTimeMillis();

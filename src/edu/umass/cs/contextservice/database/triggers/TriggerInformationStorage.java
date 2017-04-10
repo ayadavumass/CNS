@@ -18,7 +18,6 @@ import edu.umass.cs.contextservice.config.ContextServiceConfig;
 import edu.umass.cs.contextservice.config.ContextServiceConfig.SQL_DB_TYPE;
 import edu.umass.cs.contextservice.database.RegionMappingDataStorageDB;
 import edu.umass.cs.contextservice.database.datasource.AbstractDataSource;
-import edu.umass.cs.contextservice.database.datasource.AbstractDataSource.DB_REQUEST_TYPE;
 import edu.umass.cs.contextservice.logging.ContextServiceLogger;
 import edu.umass.cs.contextservice.messages.ValueUpdateToSubspaceRegionMessage;
 import edu.umass.cs.contextservice.queryparsing.QueryParser;
@@ -56,12 +55,12 @@ public class TriggerInformationStorage implements
 		
 		try
 		{
-			myConn = dataSource.getConnection(DB_REQUEST_TYPE.UPDATE);
+			myConn = dataSource.getConnection();
 			stmt   =  myConn.createStatement();
 			
 			String tableName = RegionMappingDataStorageDB.ATTR_INDEX_TRIGGER_TABLE_NAME;
 			
-			String newTableCommand = "create table "+tableName+" ( groupGUID BINARY(20) NOT NULL , "
+			String newTableCommand = "create table IF NOT EXISTS "+tableName+" ( groupGUID BINARY(20) NOT NULL , "
 					+ "userIP Binary(4) NOT NULL ,  userPort INTEGER NOT NULL , expiryTime BIGINT NOT NULL ";
 			newTableCommand = getPartitionInfoStorageString(newTableCommand);
 			
@@ -86,7 +85,7 @@ public class TriggerInformationStorage implements
 			}
 			
 			if( (ContextServiceConfig.sqlDBType == SQL_DB_TYPE.MYSQL) 
-					&& (ContextServiceConfig.IN_MEMORY_MYSQL) )
+					&& (ContextServiceConfig.inMemoryMySQL) )
 			{
 				newTableCommand = newTableCommand +" ENGINE = MEMORY";
 			}
@@ -94,8 +93,8 @@ public class TriggerInformationStorage implements
 			stmt.executeUpdate(newTableCommand);
 			
 			
-			if( ContextServiceConfig.TRIGGER_ENABLED 
-								&& ContextServiceConfig.UniqueGroupGUIDEnabled )
+			if( ContextServiceConfig.triggerEnabled 
+								&& ContextServiceConfig.uniqueGroupGUIDEnabled )
 			{
 				// currently it is assumed that there are only conjunctive queries
 				// DNF form queries can be added by inserting its multiple conjunctive components.
@@ -107,13 +106,13 @@ public class TriggerInformationStorage implements
 				
 				tableName = RegionMappingDataStorageDB.HASH_INDEX_TRIGGER_TABLE_NAME;
 				
-				newTableCommand = "create table "+tableName+" ( groupGUID BINARY(20) NOT NULL , "
+				newTableCommand = "create table IF NOT EXISTS "+tableName+" ( groupGUID BINARY(20) NOT NULL , "
 						+ "userIP Binary(4) NOT NULL ,  userPort INTEGER NOT NULL ";
 				
 				newTableCommand = newTableCommand +" , PRIMARY KEY(groupGUID, userIP, userPort) )";
 				
 				if( (ContextServiceConfig.sqlDBType == SQL_DB_TYPE.MYSQL) 
-						&& (ContextServiceConfig.IN_MEMORY_MYSQL) )
+						&& (ContextServiceConfig.inMemoryMySQL) )
 				{
 					newTableCommand = newTableCommand +" ENGINE = MEMORY";
 				}
@@ -197,7 +196,7 @@ public class TriggerInformationStorage implements
 			}
 			insertTableSQL = insertTableSQL + " ) ";
 			
-			myConn = this.dataSource.getConnection(DB_REQUEST_TYPE.UPDATE);
+			myConn = this.dataSource.getConnection();
 			stmt = myConn.createStatement();
 			
 			// execute insert SQL stetement
@@ -376,7 +375,7 @@ public class TriggerInformationStorage implements
 			
 			ContextServiceLogger.getLogger().fine("returnOldValueGroupGUIDs getTriggerInfo "
 												+oldGroupQuery);
-			myConn 	     = dataSource.getConnection(DB_REQUEST_TYPE.SELECT);
+			myConn 	     = dataSource.getConnection();
 			stmt   		 = myConn.createStatement();
 			
 			ResultSet rs = stmt.executeQuery(oldGroupQuery);
@@ -727,7 +726,7 @@ public class TriggerInformationStorage implements
 		
 		try
 		{
-			myConn = this.dataSource.getConnection(DB_REQUEST_TYPE.UPDATE);
+			myConn = this.dataSource.getConnection();
 			stmt = myConn.createStatement();
 			rumRowsDeleted = stmt.executeUpdate(deleteCommand);
 		} catch(SQLException sqex)
@@ -767,7 +766,7 @@ public class TriggerInformationStorage implements
 		// for groups associated with the new value
 		try
 		{
-			myConn 	     = this.dataSource.getConnection(DB_REQUEST_TYPE.SELECT);
+			myConn 	     = this.dataSource.getConnection();
 			stmt   		 = myConn.createStatement();
 			
 			String selectQuery ="";
@@ -867,7 +866,7 @@ public class TriggerInformationStorage implements
 		
 		try
 		{
-			myConn 		 	= this.dataSource.getConnection(DB_REQUEST_TYPE.UPDATE);
+			myConn 		 	= this.dataSource.getConnection();
 			stmt 		 	= myConn.createStatement();
 			ResultSet rs 	= stmt.executeQuery(selectQuery);	
 			
