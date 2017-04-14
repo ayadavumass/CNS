@@ -36,7 +36,6 @@ public interface GUIDStorageInterface
 	
 	public void deleteGUIDFromTable(String tableName, String nodeGUID);
 	
-	
 	public String getAttrIndexTableCreationCmd();
 	
 	public String getHashIndexTableCreationCmd();

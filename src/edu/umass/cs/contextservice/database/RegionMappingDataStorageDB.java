@@ -2,25 +2,28 @@ package edu.umass.cs.contextservice.database;
 
 import java.net.UnknownHostException;
 import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.HashMap;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import edu.umass.cs.contextservice.config.ContextServiceConfig;
 import edu.umass.cs.contextservice.database.guidattributes.SQLGUIDStorage;
 import edu.umass.cs.contextservice.database.datasource.AbstractDataSource;
 import edu.umass.cs.contextservice.database.guidattributes.GUIDStorageInterface;
 import edu.umass.cs.contextservice.database.triggers.GroupGUIDInfoClass;
-import edu.umass.cs.contextservice.database.triggers.TriggerInformationStorage;
 import edu.umass.cs.contextservice.database.triggers.TriggerInformationStorageInterface;
-import edu.umass.cs.contextservice.logging.ContextServiceLogger;
 import edu.umass.cs.contextservice.profilers.CNSProfiler;
 import edu.umass.cs.contextservice.regionmapper.helper.AttributeValueRange;
 
 
+/**
+ * 
+ * @author ayadav
+ *
+ */
+//suppressing the warnings for unused fields as the design methods are empty.
+@SuppressWarnings("unused")
 public class RegionMappingDataStorageDB extends AbstractDataStorageDB
 {
 	public static final int UPDATE_REC 								= 1;
@@ -59,8 +62,6 @@ public class RegionMappingDataStorageDB extends AbstractDataStorageDB
 	// it should be changed to bitmap to save space and stringification overhead.
 	public static final int varcharSizeForunsetAttrsCol				= 1000;
 	
-	
-	
 	private final GUIDStorageInterface guidAttributesStorage;
 	private  TriggerInformationStorageInterface triggerInformationStorage;
 	
@@ -77,19 +78,6 @@ public class RegionMappingDataStorageDB extends AbstractDataStorageDB
 		
 		guidAttributesStorage = new SQLGUIDStorage
 							(myNodeID, abstractDataSource, cnsprofiler );
-		
-		if( ContextServiceConfig.triggerEnabled )
-		{
-			// Currently it is assumed that there are only conjunctive queries
-			// DNF form queries can be added by inserting its multiple conjunctive 
-			// components.
-			ContextServiceLogger.getLogger().fine( "HyperspaceMySQLDB "
-					+ " TRIGGER_ENABLED "+ContextServiceConfig.triggerEnabled );
-			triggerInformationStorage = new TriggerInformationStorage
-											(myNodeID , abstractDataSource);
-		}
-		
-		createTables();
 	}
 	
 	public AbstractDataSource getDataSource()
@@ -103,27 +91,6 @@ public class RegionMappingDataStorageDB extends AbstractDataStorageDB
 	}
 	
 	/**
-	 * Creates tables needed for 
-	 * the database.
-	 * @throws SQLException
-	 */
-	private void createTables()
-	{	
-		// slightly inefficient way of creating tables
-		// as it loops through subspaces three times
-		// instead of one, but it only happens in the beginning
-		// so not a bottleneck.
-		guidAttributesStorage.createDataStorageTables();
-		
-		if( ContextServiceConfig.triggerEnabled )
-		{
-			// currently it is assumed that there are only conjunctive queries
-			// DNF form queries can be added by inserting its multiple conjunctive components.			
-			triggerInformationStorage.createTriggerStorageTables();
-		}
-	}
-	
-	/**
 	 * This function is implemented here as it involves 
 	 * joining guidAttrValueStorage and privacy storage tables.
 	 * @param subspaceId
@@ -133,19 +100,13 @@ public class RegionMappingDataStorageDB extends AbstractDataStorageDB
 	 */
 	public int processSearchQueryUsingAttrIndex( HashMap<String, AttributeValueRange> 
 			queryAttrValRange, JSONArray resultArray )
-	{
-		int resultSize 
-			= this.guidAttributesStorage.processSearchQueryUsingAttrIndex
-												(queryAttrValRange, resultArray);
-		
-		return resultSize;	
+	{	
+		return -1;
 	}
 	
 	public JSONObject getGUIDStoredUsingHashIndex( String guid, Connection myConn )
 	{
-		JSONObject valueJSON 
-						= this.guidAttributesStorage.getGUIDStoredUsingHashIndex(guid, myConn);
-		return valueJSON;
+		return null;
 	}
 	
 	/**
@@ -157,8 +118,6 @@ public class RegionMappingDataStorageDB extends AbstractDataStorageDB
 			String userQuery, String groupGUID, String userIP, 
 			int userPort, long expiryTimeFromNow )
 	{
-		this.triggerInformationStorage.insertIntoTriggerDataStorage
-			(userQuery, groupGUID, userIP, userPort, expiryTimeFromNow);
 	}
 	
 	/**
@@ -174,9 +133,6 @@ public class RegionMappingDataStorageDB extends AbstractDataStorageDB
 		int requestType, JSONObject newUnsetAttrs, boolean firstTimeInsert)
 				throws InterruptedException
 	{
-		this.triggerInformationStorage.getTriggerDataInfo
-			( oldValJSON, updateAttrJSON, oldValGroupGUIDMap, 
-				newValGroupGUIDMap, requestType, newUnsetAttrs, firstTimeInsert );
 	}
 	
 	/**
@@ -186,14 +142,13 @@ public class RegionMappingDataStorageDB extends AbstractDataStorageDB
 	 */
 	public int deleteExpiredSearchQueries()
 	{
-		return this.triggerInformationStorage.deleteExpiredSearchQueries();
+		return -1;
 	}
+	
 	
 	public void storeGUIDUsingHashIndex( String nodeGUID, 
     		JSONObject jsonToWrite, int updateOrInsert, Connection myConn ) throws JSONException
 	{
-		this.guidAttributesStorage.storeGUIDUsingHashIndex
-			( nodeGUID, jsonToWrite, updateOrInsert, myConn);
 	}
 	
 	/**
@@ -209,21 +164,16 @@ public class RegionMappingDataStorageDB extends AbstractDataStorageDB
      */
     public void storeGUIDUsingAttrIndex( String tableName, String nodeGUID, 
     		JSONObject jsonToWrite, int updateOrInsert) throws JSONException
-    {	
-		// no need to add realIDEntryption Info in primary subspaces.
-		this.guidAttributesStorage.storeGUIDUsingAttrIndex
-					(tableName, nodeGUID, jsonToWrite, updateOrInsert);
+    {
     }
-	
+    
 	public void deleteGUIDFromTable(String tableName, String nodeGUID)
 	{
-		this.guidAttributesStorage.deleteGUIDFromTable(tableName, nodeGUID);
 	}
 	
 	public boolean checkAndInsertSearchQueryRecordFromPrimaryTriggerSubspace( String groupGUID, 
 			String userIP, int userPort ) throws UnknownHostException
 	{
-		return triggerInformationStorage.checkAndInsertSearchQueryRecordFromPrimaryTriggerSubspace
-				(groupGUID, userIP, userPort);
+		return false;
 	}
 }

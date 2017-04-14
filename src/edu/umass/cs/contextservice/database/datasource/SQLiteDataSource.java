@@ -24,7 +24,7 @@ public class SQLiteDataSource extends AbstractDataSource
     	searchPool.setMaxPoolSize(ContextServiceConfig.mysqlMaxConnections);
     	searchPool.setAutoCommitOnClose(true);
     }
-
+    
     public Connection getConnection() throws SQLException 
     {
     	return searchPool.getConnection();

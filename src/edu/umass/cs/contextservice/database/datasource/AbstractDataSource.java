@@ -6,6 +6,5 @@ import java.sql.SQLException;
 public abstract class AbstractDataSource 
 {
 	public abstract Connection getConnection() throws SQLException;
-	
 	public abstract String getCmdLineConnString();
 }

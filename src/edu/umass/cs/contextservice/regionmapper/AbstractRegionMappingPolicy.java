@@ -12,7 +12,6 @@ import edu.umass.cs.contextservice.regionmapper.helper.AttributeValueRange;
  * This interface implements methods to implement 
  * a region mapping policy.
  * @author ayadav
- * @param <Integer>
  */
 public abstract class AbstractRegionMappingPolicy
 {	

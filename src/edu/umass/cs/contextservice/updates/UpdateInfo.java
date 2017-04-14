@@ -3,14 +3,17 @@ package edu.umass.cs.contextservice.updates;
 import java.util.HashMap;
 
 import org.json.JSONArray;
-import org.json.JSONException;
-
-import edu.umass.cs.contextservice.config.ContextServiceConfig;
 
 import edu.umass.cs.contextservice.database.triggers.GroupGUIDInfoClass;
 import edu.umass.cs.contextservice.messages.ValueUpdateFromGNS;
 import edu.umass.cs.contextservice.profilers.UpdateStats;
 
+/**
+ * 
+ * @author ayadav
+ */
+//suppressing the warnings for unused fields as the design methods are empty.
+@SuppressWarnings("unused")
 public class UpdateInfo
 {	
 	private final ValueUpdateFromGNS valUpdMsgFromGNS;
@@ -33,19 +36,6 @@ public class UpdateInfo
 	{
 		this.valUpdMsgFromGNS = valUpdMsgFromGNS;
 		this.updateRequestId  = updateRequestId;
-		
-		updateReqCompl = false;
-		
-		if( ContextServiceConfig.triggerEnabled )
-		{
-			toBeRemovedMap = new HashMap<String, GroupGUIDInfoClass>();
-			toBeAddedMap = new HashMap<String, GroupGUIDInfoClass>();
-		}
-		
-		if(ContextServiceConfig.PROFILER_ENABLED)
-		{
-			updateStat = new UpdateStats();
-		}
 	}
 	
 	public long getRequestId()
@@ -72,76 +62,12 @@ public class UpdateInfo
 	{
 		assert( toBeRemovedGroups != null );
 		assert( toBeAddedGroups != null );
-		
-		synchronized( this.repliesLock )
-		{
-			if( ContextServiceConfig.triggerEnabled )
-			{
-				for( int i=0; i<toBeRemovedGroups.length(); i++ )
-				{
-					try 
-					{
-						GroupGUIDInfoClass groupGUIDInfo 
-								= new GroupGUIDInfoClass(toBeRemovedGroups.getJSONObject(i));
-						
-						String groupGUID = groupGUIDInfo.getGroupGUID();
-						
-						// doing duplicate elimination right here.
-						// as a query can span multiple nodes in a subspace.
-						toBeRemovedMap.put(groupGUID, groupGUIDInfo);
-					}
-					catch (JSONException e)
-					{
-						e.printStackTrace();
-					}
-				}
-				
-				
-				for( int i=0; i<toBeAddedGroups.length(); i++ )
-				{
-					GroupGUIDInfoClass groupGUIDInfo;
-					try 
-					{
-						groupGUIDInfo 
-							= new GroupGUIDInfoClass(toBeAddedGroups.getJSONObject(i));
-						
-						String groupGUID = groupGUIDInfo.getGroupGUID();
-						
-						// doing duplicate elimination right here.
-						// as a query can span multiple nodes in a subspace.
-						toBeAddedMap.put(groupGUID, groupGUIDInfo);
-					} catch (JSONException e) 
-					{
-						e.printStackTrace();
-					}
-				}
-			}
-			valueUpdateRepliesCounter++;
-			
-			if( valueUpdateRepliesCounter == this.totalExpectedValueUpdateReplies )
-			{
-				return true;
-			}
-			else
-			{
-				return false;
-			}
-		}
+		return false;
 	}
 	
 	public boolean checkAllUpdateReplyRecvd()
 	{
-		synchronized(this.repliesLock)
-		{
-			if( valueUpdateRepliesCounter == this.totalExpectedValueUpdateReplies )
-			{
-				return true;
-			}
-			else
-			{
-				return false;
-			}
-		}
+		return false;
 	}
 	
 	public HashMap<String, GroupGUIDInfoClass> getToBeRemovedMap()
@@ -163,6 +89,4 @@ public class UpdateInfo
 	{
 		return this.updateStat;
 	}
-	
-	
 }

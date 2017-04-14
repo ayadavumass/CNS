@@ -1,11 +1,5 @@
 package edu.umass.cs.contextservice.schemes;
 
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.UnknownHostException;
-import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -15,13 +9,9 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import edu.umass.cs.contextservice.ContextServiceProtocolTask;
-import edu.umass.cs.contextservice.attributeInfo.AttributeTypes;
 import edu.umass.cs.contextservice.logging.ContextServiceLogger;
 import edu.umass.cs.contextservice.messages.BasicContextServicePacket;
 import edu.umass.cs.contextservice.messages.ContextServicePacket;
-import edu.umass.cs.contextservice.messages.QueryMsgFromUserReply;
-import edu.umass.cs.contextservice.messages.RefreshTrigger;
-import edu.umass.cs.contextservice.messages.ValueUpdateFromGNSReply;
 import edu.umass.cs.contextservice.queryparsing.QueryInfo;
 import edu.umass.cs.contextservice.updates.UpdateInfo;
 import edu.umass.cs.nio.GenericMessagingTask;
@@ -62,31 +52,11 @@ public abstract class AbstractScheme implements PacketDemultiplexer<JSONObject>
 	
 	public AbstractScheme(NodeConfig<Integer> nc, JSONMessenger<Integer> m)
 	{
-		this.numMesgLock = new Object();
-		
-		this.allNodeIDs = new LinkedList<Integer>();
-		
-		Set<Integer>	nodeIDSet = nc.getNodeIDs();
-		
-		Iterator<Integer> nodeIDIter = nodeIDSet.iterator();
-		
-		while( nodeIDIter.hasNext() )
-		{
-			Integer currNodeID = nodeIDIter.next();
-			allNodeIDs.add(currNodeID);
-		}
-		
-		pendingQueryRequests  = new ConcurrentHashMap<Long, QueryInfo>();
-		
-		pendingUpdateRequests = new ConcurrentHashMap<Long, UpdateInfo>();
-		
-		// initialize attribute types
-		AttributeTypes.initialize();
-		
-		this.messenger = m;
-		this.protocolExecutor = new ProtocolExecutor<Integer, ContextServicePacket.PacketType, String>(messenger);
-		this.protocolTask = new ContextServiceProtocolTask(getMyID(), this);
-		this.protocolExecutor.register(this.protocolTask.getEventTypes(), this.protocolTask);
+		messenger = m;
+		protocolExecutor = null;
+		protocolTask = null;
+		numMesgLock = null;
+		allNodeIDs = null;		
 	}
 	
 	// public methods
@@ -134,69 +104,6 @@ public abstract class AbstractScheme implements PacketDemultiplexer<JSONObject>
 	public long getNumMesgInSystem()
 	{
 		return this.numMessagesInSystem;
-	}
-	
-	protected void sendQueryReplyBackToUser(InetSocketAddress destAddress, QueryMsgFromUserReply qmesgUR)
-	{
-		try
-		{
-			log.fine("sendReplyBackToUser "+destAddress+" "+ qmesgUR.toJSONObject());
-			this.messenger.sendToAddress(destAddress, qmesgUR.toJSONObject());
-		} catch (UnknownHostException e)
-		{
-			e.printStackTrace();
-		} catch (IOException e)
-		{
-			e.printStackTrace();
-		} catch (JSONException e)
-		{
-			e.printStackTrace();
-		}
-	}
-	
-	protected void sendUpdateReplyBackToUser(String sourceIP, int sourcePort, long versioNum)
-	{
-		ValueUpdateFromGNSReply valUR
-			= new ValueUpdateFromGNSReply(this.getMyID(), versioNum, versioNum);
-		
-		try
-		{
-			log.fine("sendUpdateReplyBackToUser "+sourceIP+" "+sourcePort+
-					valUR.toJSONObject());
-			
-			this.messenger.sendToAddress(
-					new InetSocketAddress(InetAddress.getByName(sourceIP), sourcePort)
-								, valUR.toJSONObject());
-		} catch (UnknownHostException e)
-		{
-			e.printStackTrace();
-		} catch (IOException e)
-		{
-			e.printStackTrace();
-		} catch (JSONException e)
-		{
-			e.printStackTrace();
-		}
-	}
-	
-	protected void sendRefreshReplyBackToUser(InetSocketAddress destSock, RefreshTrigger valUR)
-	{
-		try
-		{
-			log.fine("sendRefreshReplyBackToUser "+destSock+
-					valUR.toJSONObject());
-			
-			this.messenger.sendToAddress(destSock, valUR.toJSONObject());
-		} catch (UnknownHostException e)
-		{
-			e.printStackTrace();
-		} catch (IOException e)
-		{
-			e.printStackTrace();
-		} catch (JSONException e)
-		{
-			e.printStackTrace();
-		}
 	}
 	
 	/**

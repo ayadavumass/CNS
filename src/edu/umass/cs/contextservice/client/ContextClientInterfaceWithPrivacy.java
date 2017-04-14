@@ -44,10 +44,8 @@ public interface ContextClientInterfaceWithPrivacy
 			GuidEntry myGuidEntry, HashMap<String, List<ACLEntry>> aclMap, 
 			boolean useSymmetricKeys) throws JSONException;
 	
-	//FIXME: semantics needs to be decided, after secure update/insert is implemented
 	public int sendSearchQuerySecure(String searchQuery, JSONArray replyArray, 
 			long expiryTime, GuidEntry myGUIDInfo);
 	
-	//FIXME: semantics needs to be decided, after secure update/insert is implemented
 	public JSONObject sendGetRequestSecure(String GUID, GuidEntry myGUIDInfo) throws Exception;
 }

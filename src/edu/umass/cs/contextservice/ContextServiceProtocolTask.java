@@ -18,17 +18,17 @@ import edu.umass.cs.protocoltask.ProtocolTask;
 /**
  * Protocol task for the whole context service
  * @author adipc
- *
  * @param <Integer>
  */
 public class ContextServiceProtocolTask implements ProtocolTask<Integer, ContextServicePacket.PacketType, String> 
 {
-	private static final String HANDLER_METHOD_PREFIX = ContextServicePacket.HANDLER_METHOD_PREFIX; // could be any String as scope is local
+	private static final String HANDLER_METHOD_PREFIX 
+							= ContextServicePacket.HANDLER_METHOD_PREFIX; // could be any String as scope is local
 	
-	private static final List<ContextServicePacket.PacketType> types =
-				ContextServicePacket.PacketType.getPacketTypes();
+	private static final List<ContextServicePacket.PacketType> types 
+							= ContextServicePacket.PacketType.getPacketTypes();
 	
-	private String key = "contextserviceKey";
+	private String key 		= "contextserviceKey";
 	private final AbstractScheme csNode;
 
 	public ContextServiceProtocolTask(Integer id, AbstractScheme csNode)
@@ -45,22 +45,19 @@ public class ContextServiceProtocolTask implements ProtocolTask<Integer, Context
 	@Override
 	public Set<ContextServicePacket.PacketType> getEventTypes()
 	{
-		//return new HashSet<ContextServicePacket.PacketType>(Arrays.asList(types));
 		return new HashSet<ContextServicePacket.PacketType>(types);
 	}
-
-	@SuppressWarnings("unchecked")
+	
+	
 	@Override
 	public GenericMessagingTask<Integer, ?>[] handleEvent(
 		ProtocolEvent<ContextServicePacket.PacketType, String> event,
 		ProtocolTask<Integer, ContextServicePacket.PacketType, String>[] ptasks)
 	{
 		ContextServicePacket.PacketType type = event.getType();
-		Object returnValue = null;
 		try
 		{
-			//ContextServiceLogger.getLogger().fine("ContextServicePacket.getPacketTypeClassName(type) "+ContextServicePacket.getPacketTypeClassName(type));
-			returnValue = this.csNode.getClass().getMethod(HANDLER_METHOD_PREFIX+
+			this.csNode.getClass().getMethod(HANDLER_METHOD_PREFIX+
 				ContextServicePacket.getPacketTypeClassName(type), ProtocolEvent.class, 
 				ProtocolTask[].class).invoke(this.csNode, 
 					(BasicContextServicePacket)event, ptasks);
@@ -74,21 +71,22 @@ public class ContextServiceProtocolTask implements ProtocolTask<Integer, Context
 		{
 			iae.printStackTrace();
 		}
-		return (GenericMessagingTask<Integer, ?>[])returnValue;
+		// CNS doesn't send any task back to be executed by the protocol executor
+		return null;
 	}
 	
 	public BasicContextServicePacket getContextServicePacket(JSONObject json) throws JSONException
 	{
-		return (BasicContextServicePacket)ContextServicePacket.getContextServicePacket(json);
+		return (BasicContextServicePacket) ContextServicePacket.getContextServicePacket(json);
 	}
 	
-	public static void main(String[] args)
-	{
-	}
-
 	@Override
 	public GenericMessagingTask<Integer, ?>[] start() 
 	{
 		return null;
+	}
+	
+	public static void main(String[] args)
+	{
 	}
 }

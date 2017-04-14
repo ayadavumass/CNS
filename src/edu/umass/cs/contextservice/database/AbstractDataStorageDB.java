@@ -12,6 +12,11 @@ import edu.umass.cs.contextservice.database.datasource.AbstractDataSource;
 import edu.umass.cs.contextservice.database.triggers.GroupGUIDInfoClass;
 import edu.umass.cs.contextservice.regionmapper.helper.AttributeValueRange;
 
+/**
+ * 
+ * @author ayadav
+ *
+ */
 public abstract class AbstractDataStorageDB
 {	
 	public abstract int processSearchQueryUsingAttrIndex(HashMap<String, AttributeValueRange> 

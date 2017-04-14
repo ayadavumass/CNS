@@ -4,6 +4,13 @@ package edu.umass.cs.contextservice.schemes.components;
 import edu.umass.cs.contextservice.database.AbstractDataStorageDB;
 import edu.umass.cs.contextservice.logging.ContextServiceLogger;
 
+/**
+ * 
+ * @author ayadav
+ *
+ */
+//suppressing the warnings for unused fields as the design methods are empty.
+@SuppressWarnings("unused")
 public class DeleteExpiredSearchesThread implements Runnable
 {
 	private final AbstractDataStorageDB dataStorageDB;
@@ -26,10 +33,7 @@ public class DeleteExpiredSearchesThread implements Runnable
 				e.printStackTrace();
 			}
 			
-			int numDeleted = dataStorageDB.deleteExpiredSearchQueries();
-					if(numDeleted > 0)
-						ContextServiceLogger.getLogger().fine( "Group guids deleted "
-							+" numDeleted "+numDeleted );
+			//TODO: the function to delete expired search queries.
 		}
 	}
 }
