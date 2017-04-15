@@ -8,16 +8,14 @@ import edu.umass.cs.contextservice.common.CSNodeConfig;
 import edu.umass.cs.contextservice.regionmapper.helper.AttributeValueRange;
 
 /**
- * 
  * This interface implements methods to implement 
  * a region mapping policy.
  * @author ayadav
  */
 public abstract class AbstractRegionMappingPolicy
-{	
+{
 	protected final HashMap<String, AttributeMetaInfo> attributeMap;
 	protected final CSNodeConfig nodeConfig;
-	
 	
 	public AbstractRegionMappingPolicy( HashMap<String, AttributeMetaInfo> attributeMap, 
 			CSNodeConfig nodeConfig )

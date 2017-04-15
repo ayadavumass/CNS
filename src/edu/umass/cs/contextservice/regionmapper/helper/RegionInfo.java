@@ -16,8 +16,6 @@ public class RegionInfo
 	
 	private List<Integer> nodeList;
 	
-	//private double traceLoad;
-	
 	private double searchLoad;
 	private double updateLoad;
 	

@@ -23,13 +23,14 @@ public class CSNodeConfig implements NodeConfig<Integer>
 	private HashMap<Integer,InetSocketAddress> nmap 
 							= new HashMap<Integer,InetSocketAddress>();
 	private int defaultPort=2000;
-
+	
 	public CSNodeConfig(int dp)
 	{
 		defaultPort = dp;
 	}
+	
 	public CSNodeConfig() {}
-
+	
 	public void localSetup(Set<Integer> members)
 	{
 		local = true;
@@ -38,6 +39,7 @@ public class CSNodeConfig implements NodeConfig<Integer>
 			this.add(i, getLocalAddress());
 		}
 	}
+	
 	/* The caller can either specify the number of nodes, nNodes,
 	 * or specify a set of integer node IDs explicitly. In the former
 	 * case, nNodes from 0 to nNodes-1 will the node IDs. In the 

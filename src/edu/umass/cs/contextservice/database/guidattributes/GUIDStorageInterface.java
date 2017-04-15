@@ -17,7 +17,7 @@ import edu.umass.cs.contextservice.regionmapper.helper.AttributeValueRange;
  * that supports updates and range queries.
  * @author adipc
  */
-public interface GUIDStorageInterface 
+public interface GUIDStorageInterface
 {
 	public void createDataStorageTables();
 	

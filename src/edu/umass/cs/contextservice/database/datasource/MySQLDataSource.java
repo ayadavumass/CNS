@@ -25,26 +25,24 @@ public class MySQLDataSource extends AbstractDataSource
     
     private final CNSProfiler profStats;
     
-    
     public MySQLDataSource(Integer myNodeID, CNSProfiler profStats)  
     {
     	myNodeId = myNodeID;
     	this.profStats = profStats;
     	sqlNodeInfoMap = null;
     }
-
-    public Connection getConnection() throws SQLException 
+    
+    public Connection getConnection() throws SQLException
     {
     	return null;
     }
     
-    
     @Override
 	public String getCmdLineConnString() 
     {
-    	String str = "mysql --"+sqlNodeInfoMap.get(myNodeId).arguments+" -u "+
-    			sqlNodeInfoMap.get(myNodeId).username+" --password="+sqlNodeInfoMap.get(myNodeId).password;
-    			
+    	String str = "mysql --"+sqlNodeInfoMap.get(myNodeId).arguments
+    			+" -u "+sqlNodeInfoMap.get(myNodeId).username
+    			+" --password="+sqlNodeInfoMap.get(myNodeId).password;
 		return str;
 	}
     
@@ -58,6 +56,6 @@ public class MySQLDataSource extends AbstractDataSource
 		public String databaseName;
 		public String username;
 		public String password;
-		public String arguments;	
+		public String arguments;
 	}
 }
