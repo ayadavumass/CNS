@@ -4,17 +4,13 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 
-public class NoopMessage extends BasicContextServicePacket
+public class NoopMessage extends ContextServicePacket
 {
 	private enum Keys {SOURCEIP, SOURCEPORT, PAYLOAD};
 	
-	//private final long userReqId;
-	//private final String guidToGet;
 	private final String sourceIP;
 	private final int sourcePort;
 	private final String payloadString;
-	// query is sent so that bulk get only returns GUIDs that satisfy query
-	//private final String query;
 	
 	public NoopMessage(Integer initiator, String sourceIP, int sourcePort, 
 			String payloadStr)

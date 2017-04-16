@@ -16,13 +16,13 @@ import edu.umass.cs.contextservice.attributeInfo.AttributeMetaInfo;
 import edu.umass.cs.contextservice.attributeInfo.AttributeTypes;
 import edu.umass.cs.contextservice.config.ContextServiceConfig;
 import edu.umass.cs.contextservice.config.ContextServiceConfig.SQL_DB_TYPE;
-import edu.umass.cs.contextservice.database.RegionMappingDataStorageDB;
+import edu.umass.cs.contextservice.database.DBConstants;
 import edu.umass.cs.contextservice.database.datasource.AbstractDataSource;
+import edu.umass.cs.contextservice.database.recordformat.HashIndexGUIDRecord;
 import edu.umass.cs.contextservice.logging.ContextServiceLogger;
 import edu.umass.cs.contextservice.messages.ValueUpdateToSubspaceRegionMessage;
 import edu.umass.cs.contextservice.queryparsing.QueryParser;
 import edu.umass.cs.contextservice.regionmapper.helper.AttributeValueRange;
-import edu.umass.cs.contextservice.schemes.RegionMappingBasedScheme;
 import edu.umass.cs.contextservice.utils.Utils;
 
 /**
@@ -58,7 +58,7 @@ public class TriggerInformationStorage implements
 			myConn = dataSource.getConnection();
 			stmt   =  myConn.createStatement();
 			
-			String tableName = RegionMappingDataStorageDB.ATTR_INDEX_TRIGGER_TABLE_NAME;
+			String tableName = DBConstants.ATTR_INDEX_TRIGGER_TABLE_NAME;
 			
 			String newTableCommand = "create table IF NOT EXISTS "+tableName+" ( groupGUID BINARY(20) NOT NULL , "
 					+ "userIP Binary(4) NOT NULL ,  userPort INTEGER NOT NULL , expiryTime BIGINT NOT NULL ";
@@ -104,7 +104,7 @@ public class TriggerInformationStorage implements
 				
 				// for storing the trigger data, which is search queries
 				
-				tableName = RegionMappingDataStorageDB.HASH_INDEX_TRIGGER_TABLE_NAME;
+				tableName = DBConstants.HASH_INDEX_TRIGGER_TABLE_NAME;
 				
 				newTableCommand = "create table IF NOT EXISTS "+tableName+" ( groupGUID BINARY(20) NOT NULL , "
 						+ "userIP Binary(4) NOT NULL ,  userPort INTEGER NOT NULL ";
@@ -150,9 +150,10 @@ public class TriggerInformationStorage implements
 		Connection myConn   = null;
 		Statement stmt      = null;
 		
-		String tableName = RegionMappingDataStorageDB.ATTR_INDEX_TRIGGER_TABLE_NAME;
+		String tableName 	= DBConstants.ATTR_INDEX_TRIGGER_TABLE_NAME;
 		
-		HashMap<String, AttributeValueRange> valSpaceBoundary = QueryParser.parseQuery(userQuery);
+		HashMap<String, AttributeValueRange> valSpaceBoundary 
+							= QueryParser.parseQuery(userQuery);
 		
 		String hexIP;
 		try
@@ -236,7 +237,8 @@ public class TriggerInformationStorage implements
 	 * @return
 	 * @throws InterruptedException 
 	 */
-	public void getTriggerDataInfo( JSONObject oldValJSON, JSONObject onlyUpdateAttrValJSON, 
+	public void getTriggerDataInfo( HashIndexGUIDRecord oldGuidRec, 
+		JSONObject onlyUpdateAttrValJSON, 
 		HashMap<String, GroupGUIDInfoClass> removedGroupGUIDMap, 
 		HashMap<String, GroupGUIDInfoClass> addedGroupGUIDMap, 
 		int requestType, JSONObject newUnsetAttrs,
@@ -247,19 +249,35 @@ public class TriggerInformationStorage implements
 		assert(addedGroupGUIDMap != null);
 		// oldValJSON should contain all attribtues.
 		// newUpdateVal contains only updated attr:val pairs
-		//assert(oldValJSON.length() == AttributeTypes.attributeMap.size());
 		
 		
 		if( requestType == ValueUpdateToSubspaceRegionMessage.REMOVE_ENTRY )
 		{
-			OldValueGroupGUIDs old = new OldValueGroupGUIDs
-			(oldValJSON, onlyUpdateAttrValJSON, newUnsetAttrs, removedGroupGUIDMap,
-					dataSource);
-			old.run();
+			try
+			{
+				String queriesWithAttrs 
+					= getQueriesThatContainAttrsInUpdate
+					(onlyUpdateAttrValJSON);
+			
+				String oldGroupsQuery 
+					= getQueryToGetOldValueGroups(oldGuidRec);
+				
+				String newGroupsQuery = getQueryToGetNewValueGroups
+						( oldGuidRec, onlyUpdateAttrValJSON, newUnsetAttrs );
+				
+				OldValueGroupGUIDs old = new OldValueGroupGUIDs
+				(oldGuidRec, removedGroupGUIDMap,
+						 dataSource, oldGroupsQuery, newGroupsQuery, queriesWithAttrs);
+				old.run();
+			}
+			catch(JSONException jsonEx)
+			{
+				jsonEx.printStackTrace();
+			}
 		}
 		else if( requestType == ValueUpdateToSubspaceRegionMessage.ADD_ENTRY )
 		{
-			returnAddedGroupGUIDs( oldValJSON, 
+			returnAddedGroupGUIDs( oldGuidRec, 
 					onlyUpdateAttrValJSON, addedGroupGUIDMap, newUnsetAttrs, firstTimeInsert);
 		}
 		else if( requestType == ValueUpdateToSubspaceRegionMessage.UPDATE_ENTRY )
@@ -268,7 +286,7 @@ public class TriggerInformationStorage implements
 			// so we don't need to check for old groups to which this new GUID was part of.
 			if(firstTimeInsert)
 			{
-				returnAddedGroupGUIDs(oldValJSON, 
+				returnAddedGroupGUIDs(oldGuidRec, 
 						onlyUpdateAttrValJSON, addedGroupGUIDMap, newUnsetAttrs, firstTimeInsert );
 			}
 			else
@@ -276,15 +294,6 @@ public class TriggerInformationStorage implements
 				// both old and new value GUIDs stored at same nodes,
 				// makes it possible to find which groupGUIDs needs to be triggered.
 				// in parallel
-//				OldValueGroupGUIDs<Integer> old = new OldValueGroupGUIDs<Integer>
-//				(subspaceId, oldValJSON, onlyUpdateAttrValJSON, newUnsetAttrs, oldValGroupGUIDMap,
-//						dataSource);
-//				old.run();
-////				Thread st = new Thread(old);
-////				st.start();
-//				returnAddedGroupGUIDs( subspaceId, oldValJSON, 
-//						newJSONToWrite, newValGroupGUIDMap, newUnsetAttrs, firstTimeInsert );
-////				st.join();
 				
 				
 				HashMap<String, GroupGUIDInfoClass> oldSatisfyingGroups 
@@ -293,7 +302,7 @@ public class TriggerInformationStorage implements
 				HashMap<String, GroupGUIDInfoClass> newSatisfyingGroups 
 												= new HashMap<String, GroupGUIDInfoClass>();
 				getOldAndNewValueSatisfyingGroups
-					(oldValJSON, onlyUpdateAttrValJSON,  oldSatisfyingGroups, newSatisfyingGroups,
+					(oldGuidRec, onlyUpdateAttrValJSON,  oldSatisfyingGroups, newSatisfyingGroups,
 							newUnsetAttrs);
 				
 				// computing removed groups
@@ -332,16 +341,14 @@ public class TriggerInformationStorage implements
 	
 	
 	private void getOldAndNewValueSatisfyingGroups
-					( JSONObject oldValJSON, JSONObject updateValJSON, 
+				( HashIndexGUIDRecord oldGuidRec, JSONObject updateValJSON, 
 				HashMap<String, GroupGUIDInfoClass> oldSatisfyingGroups, 
 				HashMap<String, GroupGUIDInfoClass> newSatisfyingGroups
 				, JSONObject newUnsetAttrs )
 	{
-		String tableName 			= RegionMappingDataStorageDB.ATTR_INDEX_TRIGGER_TABLE_NAME;
+		String tableName 			= DBConstants.ATTR_INDEX_TRIGGER_TABLE_NAME;
 		
-		assert(oldValJSON != null);
-		assert(oldValJSON.length() > 0);
-		JSONObject oldUnsetAttrs 	= RegionMappingBasedScheme.getUnsetAttrJSON(oldValJSON);
+		JSONObject oldUnsetAttrs 	= oldGuidRec.getUnsetAttrJSON();
 		
 		// it can be empty but should not be null
 		assert( oldUnsetAttrs != null );
@@ -359,14 +366,10 @@ public class TriggerInformationStorage implements
 		try
 		{
 			String queriesWithAttrs 
-				= TriggerInformationStorage.getQueriesThatContainAttrsInUpdate(updateValJSON);
-			//String newTableName = "projTable";
-			
-			//String createTempTable = "CREATE TEMPORARY TABLE "+
-			//		newTableName+" AS ( "+queriesWithAttrs+" ) ";
+				= getQueriesThatContainAttrsInUpdate(updateValJSON);
 			
 			String oldGroupsQuery 
-				= TriggerInformationStorage.getQueryToGetOldValueGroups(oldValJSON);
+				= getQueryToGetOldValueGroups(oldGuidRec);
 			
 			String oldGroupQuery = "SELECT groupGUID, userIP, userPort FROM "+tableName
 					+ " WHERE "
@@ -406,7 +409,7 @@ public class TriggerInformationStorage implements
 			
 			String newGroupsQuery = 
 					getQueryToGetNewValueGroups
-					( oldValJSON, updateValJSON, 
+					( oldGuidRec, updateValJSON, 
 							newUnsetAttrs);
 			
 			selectQuery = selectQuery 
@@ -468,9 +471,9 @@ public class TriggerInformationStorage implements
 	 * @param attrsInUpdate
 	 * @return
 	 */
-	public static String getQueriesThatContainAttrsInUpdate( JSONObject attrsInUpdate )
+	private String getQueriesThatContainAttrsInUpdate( JSONObject attrsInUpdate )
 	{
-		String tableName 			= RegionMappingDataStorageDB.ATTR_INDEX_TRIGGER_TABLE_NAME;
+		String tableName 			= DBConstants.ATTR_INDEX_TRIGGER_TABLE_NAME;
 		String selectQuery 			= "SELECT groupGUID FROM "+tableName+" WHERE ";
 		
 		@SuppressWarnings("unchecked")
@@ -514,12 +517,12 @@ public class TriggerInformationStorage implements
 	}
 	
 	
-	public static String getQueryToGetOldValueGroups(JSONObject oldValJSON) 
+	private String getQueryToGetOldValueGroups(HashIndexGUIDRecord oldGuidRec) 
 			throws JSONException
 	{
-		String tableName 			= RegionMappingDataStorageDB.ATTR_INDEX_TRIGGER_TABLE_NAME;
+		String tableName 			= DBConstants.ATTR_INDEX_TRIGGER_TABLE_NAME;
 		
-		JSONObject oldUnsetAttrs 	= RegionMappingBasedScheme.getUnsetAttrJSON(oldValJSON);
+		JSONObject oldUnsetAttrs 	= oldGuidRec.getUnsetAttrJSON();
 		
 		assert( oldUnsetAttrs != null );
 		
@@ -551,7 +554,7 @@ public class TriggerInformationStorage implements
 			else
 			{
 				attrValForMysql = AttributeTypes.convertStringToDataTypeForMySQL
-						(oldValJSON.getString(currAttrName), dataType)+"";
+						(oldGuidRec.getAttrValJSON().getString(currAttrName), dataType)+"";
 			}
 			
 			
@@ -606,12 +609,12 @@ public class TriggerInformationStorage implements
 	}
 	
 	
-	public static String getQueryToGetNewValueGroups
-				( JSONObject oldValJSON, JSONObject newJSONToWrite, 
+	private String getQueryToGetNewValueGroups
+				( HashIndexGUIDRecord oldGuidRec, JSONObject newJSONToWrite, 
 						JSONObject newUnsetAttrs )
 								throws JSONException
 	{
-		String tableName 			= RegionMappingDataStorageDB.ATTR_INDEX_TRIGGER_TABLE_NAME;
+		String tableName 			= DBConstants.ATTR_INDEX_TRIGGER_TABLE_NAME;
 
 		Iterator<String> attrIter = AttributeTypes.attributeMap.keySet().iterator();
 		// for groups associated with the new value
@@ -640,11 +643,12 @@ public class TriggerInformationStorage implements
 						AttributeTypes.convertStringToDataTypeForMySQL
 						(newJSONToWrite.getString(currAttrName), dataType)+"";
 					}
-					else if( oldValJSON.has(currAttrName) )
+					else if( oldGuidRec.getAttrValJSON().has(currAttrName) )
 					{
 						attrValForMysql =
 								AttributeTypes.convertStringToDataTypeForMySQL
-								(oldValJSON.getString(currAttrName), dataType)+"";	
+								(oldGuidRec.getAttrValJSON().getString(currAttrName), 
+										dataType)+"";	
 					}
 				}
 				
@@ -664,22 +668,21 @@ public class TriggerInformationStorage implements
 					}
 					else
 					{
-						selectQuery = selectQuery + " ( ( "+lowerValCol+" <= "+attrValForMysql
-								+" AND "+upperValCol+" >= "+attrValForMysql+" ) OR "
-										+ " ( ( "+lowerValCol+" > "+upperValCol+") AND "
-												+ " ( ( " +minVal+" <= "+attrValForMysql
-												+" AND "+upperValCol+" >= "+attrValForMysql+" ) "
-										+ "OR ( "+ lowerValCol+" <= "+attrValForMysql
-										+" AND "+maxVal+" >= "+attrValForMysql+" ) " + " ) "+ " ) )";
+						selectQuery = selectQuery + " ( ( "+lowerValCol+" <= "
+								+ attrValForMysql
+								+ " AND "+upperValCol+" >= "+attrValForMysql+" ) OR "
+								+ " ( ( "+lowerValCol+" > "+upperValCol+") AND "
+								+ " ( ( " +minVal+" <= "+attrValForMysql
+								+ " AND "+upperValCol+" >= "+attrValForMysql+" ) "
+								+ "OR ( "+ lowerValCol+" <= "+attrValForMysql
+								+ " AND "+maxVal+" >= "+attrValForMysql+" ) " 
+								+ " ) "+ " ) )";
 					}
 					
 					first = false;
 				}
 				else
-				{
-//					selectQuery = selectQuery+" AND "+lowerValCol+" <= "+attrValForMysql
-//							+" AND "+upperValCol+" >= "+attrValForMysql;
-					
+				{	
 					if(ContextServiceConfig.disableCircularQueryTrigger)
 					{
 						selectQuery = selectQuery+" AND "+lowerValCol+" <= "+attrValForMysql
@@ -718,7 +721,7 @@ public class TriggerInformationStorage implements
 		long currTime = System.currentTimeMillis();
 		int rumRowsDeleted = -1;
 		
-		String tableName = RegionMappingDataStorageDB.ATTR_INDEX_TRIGGER_TABLE_NAME;
+		String tableName = DBConstants.ATTR_INDEX_TRIGGER_TABLE_NAME;
 		
 		String deleteCommand = "DELETE FROM "+tableName+" WHERE expiryTime <= "+currTime;
 		Connection myConn 	= null;
@@ -755,11 +758,13 @@ public class TriggerInformationStorage implements
 	}
 	
 	
-	private void returnAddedGroupGUIDs( JSONObject oldValJSON, JSONObject newUpdateVal, 
-			HashMap<String, GroupGUIDInfoClass> newValGroupGUIDMap, JSONObject newUnsetAttrs, 
+	private void returnAddedGroupGUIDs( HashIndexGUIDRecord oldGuidRec, 
+			JSONObject newUpdateVal, 
+			HashMap<String, GroupGUIDInfoClass> newValGroupGUIDMap, 
+			JSONObject newUnsetAttrs, 
 			boolean firstTimeInsert )
 	{
-		String tableName 			= RegionMappingDataStorageDB.ATTR_INDEX_TRIGGER_TABLE_NAME;
+		String tableName 			= DBConstants.ATTR_INDEX_TRIGGER_TABLE_NAME;
 		
 		Connection myConn 			= null;
 		Statement stmt 				= null;
@@ -777,13 +782,13 @@ public class TriggerInformationStorage implements
 				
 				String newGroupsQuery = 
 						getQueryToGetNewValueGroups
-						( oldValJSON, newUpdateVal, 
+						( oldGuidRec, newUpdateVal, 
 								newUnsetAttrs);
 				selectQuery = selectQuery + " groupGUID IN ( "+newGroupsQuery+" ) ";
 			}
 			else
 			{
-				String queriesWithAttrs = TriggerInformationStorage.getQueriesThatContainAttrsInUpdate
+				String queriesWithAttrs = getQueriesThatContainAttrsInUpdate
 						(newUpdateVal);
 				
 				selectQuery = "SELECT groupGUID, userIP, userPort FROM "+tableName
@@ -791,11 +796,11 @@ public class TriggerInformationStorage implements
 				
 				String newGroupsQuery = 
 						getQueryToGetNewValueGroups
-						( oldValJSON, newUpdateVal, 
+						( oldGuidRec, newUpdateVal, 
 								newUnsetAttrs);
 				
 				String oldGroupsQuery 
-					= getQueryToGetOldValueGroups(oldValJSON);
+					= getQueryToGetOldValueGroups(oldGuidRec);
 				
 				selectQuery = selectQuery 
 						+ " groupGUID IN ( "+queriesWithAttrs+" ) AND "
@@ -844,18 +849,19 @@ public class TriggerInformationStorage implements
 	}
 	
 	
-	public boolean checkAndInsertSearchQueryRecordFromPrimaryTriggerSubspace(String groupGUID, 
-			String userIP, int userPort) 
+	public boolean checkAndInsertSearchQueryRecordFromPrimaryTriggerSubspace
+			(String groupGUID, String userIP, int userPort) 
 					throws UnknownHostException
 	{	
-		String tableName 			= RegionMappingDataStorageDB.HASH_INDEX_TRIGGER_TABLE_NAME;
+		String tableName 			= DBConstants.HASH_INDEX_TRIGGER_TABLE_NAME;
 		
 		Connection myConn 			= null;
 		Statement stmt 				= null;
 		
 		String selectQuery 			= "SELECT * ";
 		
-		String ipInHex = Utils.byteArrayToHex(InetAddress.getByName(userIP).getAddress());
+		String ipInHex = Utils.byteArrayToHex
+						(InetAddress.getByName(userIP).getAddress());
 		
 		selectQuery 				= selectQuery + " FROM "+tableName+" WHERE groupGUID = X'"+groupGUID
 				+"'"+" AND userIP = X'"+ipInHex+"'"+" AND userPort = "+userPort;

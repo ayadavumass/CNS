@@ -19,8 +19,9 @@ import edu.umass.cs.contextservice.attributeInfo.AttributeMetaInfo;
 import edu.umass.cs.contextservice.attributeInfo.AttributeTypes;
 import edu.umass.cs.contextservice.config.ContextServiceConfig;
 import edu.umass.cs.contextservice.config.ContextServiceConfig.SQL_DB_TYPE;
-import edu.umass.cs.contextservice.database.RegionMappingDataStorageDB;
+import edu.umass.cs.contextservice.database.DBConstants;
 import edu.umass.cs.contextservice.database.datasource.AbstractDataSource;
+import edu.umass.cs.contextservice.database.recordformat.HashIndexGUIDRecord;
 import edu.umass.cs.contextservice.logging.ContextServiceLogger;
 import edu.umass.cs.contextservice.messages.dataformat.SearchReplyGUIDRepresentationJSON;
 import edu.umass.cs.contextservice.profilers.CNSProfiler;
@@ -87,13 +88,14 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 		}
 	}
 	
+	
 	/**
 	 * returns attribute index table creation command. 
 	 * @return
 	 */
 	public String getAttrIndexTableCreationCmd()
 	{
-		String tableName = RegionMappingDataStorageDB.ATTR_INDEX_TABLE_NAME;
+		String tableName = DBConstants.ATTR_INDEX_TABLE_NAME;
 		
 		String newTableCommand = "create table IF NOT EXISTS "+tableName+" ( "
 			      + " nodeGUID Binary(20) PRIMARY KEY";
@@ -142,7 +144,7 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 	
 	public String getHashIndexTableCreationCmd()
 	{
-		String tableName = RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME;
+		String tableName = DBConstants.GUID_HASH_TABLE_NAME;
 		String newTableCommand = "create table IF NOT EXISTS "+tableName+" ( "
 			      + " nodeGUID Binary(20) PRIMARY KEY";
 		
@@ -152,8 +154,8 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 		
 		//TODO default empty json is added for bulkloading and not appropriately tested for privacy case
 		newTableCommand = newTableCommand + " , "
-					+RegionMappingDataStorageDB.unsetAttrsColName+" VARCHAR("
-				+RegionMappingDataStorageDB.varcharSizeForunsetAttrsCol+") DEFAULT '"
+					+DBConstants.UNSET_ATTR_COLNAME+" VARCHAR("
+				+DBConstants.VARCHAR_SIZE_UNSET_ATTR_COL+") DEFAULT '"
 					+emptyJSON.toString()+"'";
 		
 		
@@ -193,7 +195,6 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 		}
 		return newTableCommand;
 	}
-	
 	
 	public int processSearchQueryUsingAttrIndex
 			(HashMap<String, AttributeValueRange> queryAttrValRange, 
@@ -248,7 +249,7 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 					if( ContextServiceConfig.privacyEnabled )
 					{
 						byte[] anonymizedIDToGUIDMappingBA 
-							= rs.getBytes(RegionMappingDataStorageDB.anonymizedIDToGUIDMappingColName);
+							= rs.getBytes(DBConstants.ANONYMIZEDID_TO_GUID_COLNAME);
 						
 						if(anonymizedIDToGUIDMappingBA != null)
 						{
@@ -317,31 +318,32 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 			{
 				sqlex.printStackTrace();
 			}
-		}
-		
+		}	
 		return resultSize;
 	}
 	
 	
-	/*public JSONObject getGUIDStoredUsingHashIndex( String guid )
+	public HashIndexGUIDRecord getGUIDStoredUsingHashIndex
+											( String guid, Connection myConn )
 	{
 		long start = System.currentTimeMillis();
-		Connection myConn 		= null;
 		Statement stmt 			= null;
 		
 		String selectQuery 		= "SELECT * ";
-		String tableName 		= RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME;
+		String tableName 		= DBConstants.GUID_HASH_TABLE_NAME;
 		
-		JSONObject oldValueJSON = new JSONObject();
+		//JSONObject oldValueJSON = new JSONObject();
+		JSONObject attrValJSON  = new JSONObject();
+		JSONObject unsetAttrJSON = null;
+		JSONArray anonymizedIDMapping = null;
 		
 		selectQuery = selectQuery + " FROM "+tableName+" WHERE nodeGUID = X'"+guid+"'";
 		
 		try
 		{
-			myConn = this.dataSource.getConnection(DB_REQUEST_TYPE.SELECT);
 			stmt = myConn.createStatement();
 			ResultSet rs = stmt.executeQuery(selectQuery);
-			
+					
 			while( rs.next() )
 			{
 				ResultSetMetaData rsmd = rs.getMetaData();
@@ -354,31 +356,24 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 					String colName = rsmd.getColumnName(i);
 					
 					// doing translation here saves multiple strng to JSON translations later in code.
-					if(colName.equals(RegionMappingDataStorageDB.anonymizedIDToGUIDMappingColName))
+					if(colName.equals(DBConstants.ANONYMIZEDID_TO_GUID_COLNAME))
 					{
 						byte[] colValBA = rs.getBytes(colName);
 						
 						if(colValBA != null)
 						{
 							if(colValBA.length > 0)
-							{
-								try
-								{
-									JSONArray jsonArr 
-										= this.deserializeByteArrayToAnonymizedIDJSONArray(colValBA);
-									oldValueJSON.put(colName, jsonArr);
-								} catch (JSONException e) 
-								{
-									e.printStackTrace();
-								}
+							{								
+								anonymizedIDMapping 
+									= this.deserializeByteArrayToAnonymizedIDJSONArray(colValBA);
 							}
 						}
-					} else if(colName.equals(RegionMappingDataStorageDB.unsetAttrsColName))
+					} else if(colName.equals(DBConstants.UNSET_ATTR_COLNAME))
 					{
 						String colVal = rs.getString(colName);
 						try
 						{
-							oldValueJSON.put(colName, new JSONObject(colVal));
+							unsetAttrJSON = new JSONObject(colVal);
 						} catch (JSONException e) 
 						{
 							e.printStackTrace();
@@ -387,110 +382,10 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 					else
 					{
 						String colVal = rs.getString(colName);
-						try
-						{
-							oldValueJSON.put(colName, colVal);
-						} catch (JSONException e) 
-						{
-							e.printStackTrace();
-						}
-					}
-				}
-			}
-			rs.close();
-		} catch (SQLException e)
-		{
-			e.printStackTrace();
-		} finally
-		{
-			try
-			{
-				if (stmt != null)
-					stmt.close();
-				if (myConn != null)
-					myConn.close();
-			}
-			catch(SQLException e)
-			{
-				e.printStackTrace();
-			}
-		}
-		
-		long end = System.currentTimeMillis();
-		
-		if(ContextServiceConfig.PROFILER_ENABLED)
-		{
-			cnsProfiler.addGetGUIDUsingHashIndexTime(end-start);
-		}
-		
-		return oldValueJSON;
-	}*/
-	
-	public JSONObject getGUIDStoredUsingHashIndex( String guid, Connection myConn )
-	{
-		long start = System.currentTimeMillis();
-		Statement stmt 			= null;
-		
-		String selectQuery 		= "SELECT * ";
-		String tableName 		= RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME;
-		
-		JSONObject oldValueJSON = new JSONObject();
-		
-		selectQuery = selectQuery + " FROM "+tableName+" WHERE nodeGUID = X'"+guid+"'";
-		
-		try
-		{
-			stmt = myConn.createStatement();
-			ResultSet rs = stmt.executeQuery(selectQuery);
-			
-			while( rs.next() )
-			{
-				ResultSetMetaData rsmd = rs.getMetaData();
-				
-				int columnCount = rsmd.getColumnCount();
-				
-				// The column count starts from 1
-				for (int i = 1; i <= columnCount; i++ ) 
-				{
-					String colName = rsmd.getColumnName(i);
-					
-					// doing translation here saves multiple strng to JSON translations later in code.
-					if(colName.equals(RegionMappingDataStorageDB.anonymizedIDToGUIDMappingColName))
-					{
-						byte[] colValBA = rs.getBytes(colName);
 						
-						if(colValBA != null)
-						{
-							if(colValBA.length > 0)
-							{
-								try
-								{
-									JSONArray jsonArr 
-										= this.deserializeByteArrayToAnonymizedIDJSONArray(colValBA);
-									oldValueJSON.put(colName, jsonArr);
-								} catch (JSONException e) 
-								{
-									e.printStackTrace();
-								}
-							}
-						}
-					} else if(colName.equals(RegionMappingDataStorageDB.unsetAttrsColName))
-					{
-						String colVal = rs.getString(colName);
 						try
 						{
-							oldValueJSON.put(colName, new JSONObject(colVal));
-						} catch (JSONException e) 
-						{
-							e.printStackTrace();
-						}
-					}
-					else
-					{
-						String colVal = rs.getString(colName);
-						try
-						{
-							oldValueJSON.put(colName, colVal);
+							attrValJSON.put(colName, colVal);
 						} catch (JSONException e) 
 						{
 							e.printStackTrace();
@@ -522,7 +417,10 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 			cnsProfiler.addGetGUIDUsingHashIndexTime(end-start);
 		}
 		
-		return oldValueJSON;
+		HashIndexGUIDRecord guidRec = new HashIndexGUIDRecord(
+				attrValJSON, unsetAttrJSON, anonymizedIDMapping);
+		
+		return guidRec;
 	}
 	
 	
@@ -539,12 +437,12 @@ public class SQLGUIDStorage implements GUIDStorageInterface
     		JSONObject jsonToWrite, int updateOrInsert , Connection myConn) throws JSONException
     {
     	long start = System.currentTimeMillis();
-    	if( updateOrInsert == RegionMappingDataStorageDB.INSERT_REC )
+    	if( updateOrInsert == DBConstants.INSERT_REC )
     	{
     		this.performStoreGUIDInPrimarySubspaceInsert
     			(nodeGUID, jsonToWrite, myConn);
     	}
-    	else if( updateOrInsert == RegionMappingDataStorageDB.UPDATE_REC )
+    	else if( updateOrInsert == DBConstants.UPDATE_REC )
     	{
     		this.performStoreGUIDInPrimarySubspaceUpdate
     				(nodeGUID, jsonToWrite, myConn);
@@ -570,12 +468,12 @@ public class SQLGUIDStorage implements GUIDStorageInterface
     		JSONObject updatedAttrValJSON, int updateOrInsert ) throws JSONException
     {
     	long start = System.currentTimeMillis();
-    	if( updateOrInsert == RegionMappingDataStorageDB.INSERT_REC )
+    	if( updateOrInsert == DBConstants.INSERT_REC )
     	{
     		this.performStoreGUIDInSecondarySubspaceInsert
     			(tableName, nodeGUID, updatedAttrValJSON);	
     	}
-    	else if( updateOrInsert == RegionMappingDataStorageDB.UPDATE_REC )
+    	else if( updateOrInsert == DBConstants.UPDATE_REC )
     	{
     		this.performStoreGUIDInSecondarySubspaceUpdate
     				( tableName, nodeGUID, updatedAttrValJSON );
@@ -636,14 +534,14 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 	private String getMySQLQueryForProcessingSearchQuery( HashMap<String, AttributeValueRange> 
 			queryAttrValSpace )
 	{		
-		String tableName = RegionMappingDataStorageDB.ATTR_INDEX_TABLE_NAME;
+		String tableName = DBConstants.ATTR_INDEX_TABLE_NAME;
 		String mysqlQuery = "";	
 		
 		// if privacy is enabled then we also fetch 
 		// anonymizedIDToGuidMapping set.
 		if(ContextServiceConfig.privacyEnabled)
 		{
-			mysqlQuery = "SELECT nodeGUID , "+RegionMappingDataStorageDB.anonymizedIDToGUIDMappingColName
+			mysqlQuery = "SELECT nodeGUID , "+DBConstants.ANONYMIZEDID_TO_GUID_COLNAME
 					+" from "+tableName+" WHERE ( ";
 		}
 		else
@@ -791,10 +689,10 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 	            //		= atrToValueRep.get(attrName);
 	            String colValue = "";
 	            
-	            if( colName.equals(RegionMappingDataStorageDB.anonymizedIDToGUIDMappingColName) )
+	            if( colName.equals(DBConstants.ANONYMIZEDID_TO_GUID_COLNAME) )
 	            {
 	            	JSONArray jsonArr  = toWriteJSON.getJSONArray
-	            					(RegionMappingDataStorageDB.anonymizedIDToGUIDMappingColName);
+	            					(DBConstants.ANONYMIZEDID_TO_GUID_COLNAME);
 	            	
 	            	assert( jsonArr.length() > 0 );
 	            	
@@ -912,10 +810,10 @@ public class SQLGUIDStorage implements GUIDStorageInterface
     			
 				String colValue = "";
 				
-				if(colName.equals(RegionMappingDataStorageDB.anonymizedIDToGUIDMappingColName))
+				if(colName.equals(DBConstants.ANONYMIZEDID_TO_GUID_COLNAME))
 				{
 					JSONArray jsonArr = toWriteJSON.getJSONArray
-										(RegionMappingDataStorageDB.anonymizedIDToGUIDMappingColName);
+										(DBConstants.ANONYMIZEDID_TO_GUID_COLNAME);
 					assert(jsonArr != null);
 					assert( jsonArr.length() > 0 );
 	            	
@@ -991,11 +889,11 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 	{
 		ContextServiceLogger.getLogger().fine(
 				"performStoreGUIDInPrimarySubspaceUpdate "
-				+ RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME
+				+ DBConstants.GUID_HASH_TABLE_NAME
 				+ " nodeGUID "+nodeGUID);
 		
         Statement stmt         		= null;
-        String tableName 			= RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME;
+        String tableName 			= DBConstants.GUID_HASH_TABLE_NAME;
         
         String updateSqlQuery     	= "UPDATE "+tableName+ " SET ";
         
@@ -1010,10 +908,10 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 	            String colName  = colNameIter.next();
 	            String colValue = "";
 	            
-	            if( colName.equals(RegionMappingDataStorageDB.anonymizedIDToGUIDMappingColName) )
+	            if( colName.equals(DBConstants.ANONYMIZEDID_TO_GUID_COLNAME) )
 	            {
 	            	JSONArray anonymizedIDToGuidList = jsonToWrite.getJSONArray(
-	            			RegionMappingDataStorageDB.anonymizedIDToGUIDMappingColName);
+	            			DBConstants.ANONYMIZEDID_TO_GUID_COLNAME);
 	            	
 	            	// if it is null in no privacy case, then it should be even inserted 
 	            	// in towritejson.
@@ -1025,10 +923,10 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 	            	
 	            	colValue = "X'"+Utils.byteArrayToHex(fullBArray)+"'";
 	            }
-	            else if( colName.equals(RegionMappingDataStorageDB.unsetAttrsColName) )
+	            else if( colName.equals(DBConstants.UNSET_ATTR_COLNAME) )
 	            {
 	            	JSONObject unsetAttrsJSON 
-	            					= jsonToWrite.getJSONObject(RegionMappingDataStorageDB.unsetAttrsColName);
+	            					= jsonToWrite.getJSONObject(DBConstants.UNSET_ATTR_COLNAME);
 	            	
 	            	assert(unsetAttrsJSON != null);
 	            	
@@ -1095,11 +993,11 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 					( String nodeGUID, JSONObject jsonToWrite , Connection myConn)
 	{
 		ContextServiceLogger.getLogger().fine("performStoreGUIDInPrimarySubspaceInsert "
-				+RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME+" nodeGUID "+nodeGUID );
+				+DBConstants.GUID_HASH_TABLE_NAME+" nodeGUID "+nodeGUID );
 		
         Statement stmt         	   = null;
         
-        String tableName = RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME;
+        String tableName = DBConstants.GUID_HASH_TABLE_NAME;
         
         // delayed insert performs better than just insert
         String insertQuery         = "INSERT INTO "+tableName+ " (";
@@ -1135,10 +1033,10 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 				String colName = colIter.next();
 				String colValue = "";
 				
-				if( colName.equals(RegionMappingDataStorageDB.anonymizedIDToGUIDMappingColName) )
+				if( colName.equals(DBConstants.ANONYMIZEDID_TO_GUID_COLNAME) )
 	            {
 	            	JSONArray anonymizedIDToGuidList = jsonToWrite.getJSONArray(
-	            			RegionMappingDataStorageDB.anonymizedIDToGUIDMappingColName);
+	            			DBConstants.ANONYMIZEDID_TO_GUID_COLNAME);
 	            	
 	            	// if it is null in no privacy case, then it should be even inserted 
 	            	// in towritejson.
@@ -1150,10 +1048,10 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 	            	//System.out.println("fullBArray "+fullBArray.length);
 	            	colValue = "X'"+Utils.byteArrayToHex(fullBArray)+"'";
 	            }
-	            else if( colName.equals(RegionMappingDataStorageDB.unsetAttrsColName) )
+	            else if( colName.equals(DBConstants.UNSET_ATTR_COLNAME) )
 	            {
 	            	JSONObject unsetAttrsJSON 
-	            					= jsonToWrite.getJSONObject(RegionMappingDataStorageDB.unsetAttrsColName);
+	            					= jsonToWrite.getJSONObject(DBConstants.UNSET_ATTR_COLNAME);
 	            	
 	            	assert(unsetAttrsJSON != null);
 	            	
@@ -1257,14 +1155,14 @@ public class SQLGUIDStorage implements GUIDStorageInterface
 		if(!ContextServiceConfig.inMemoryMySQL)
 		{
 			newTableCommand 
-				= newTableCommand + " , "+RegionMappingDataStorageDB.anonymizedIDToGUIDMappingColName
+				= newTableCommand + " , "+DBConstants.ANONYMIZEDID_TO_GUID_COLNAME
 					+" BLOB";
 		}
 		else
 		{
 			// in memory case
 			newTableCommand 
-				= newTableCommand + " , "+RegionMappingDataStorageDB.anonymizedIDToGUIDMappingColName
+				= newTableCommand + " , "+DBConstants.ANONYMIZEDID_TO_GUID_COLNAME
 					+" Binary("+ContextServiceConfig.GUID_SYMM_KEY_ENC_LENGTH+")";
 		}
 		

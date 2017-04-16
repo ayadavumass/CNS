@@ -17,7 +17,7 @@ import java.util.List;
 import edu.umass.cs.contextservice.attributeInfo.AttributeMetaInfo;
 import edu.umass.cs.contextservice.attributeInfo.AttributeTypes;
 import edu.umass.cs.contextservice.config.ContextServiceConfig;
-import edu.umass.cs.contextservice.database.RegionMappingDataStorageDB;
+import edu.umass.cs.contextservice.database.DBConstants;
 import edu.umass.cs.contextservice.database.datasource.AbstractDataSource;
 import edu.umass.cs.contextservice.database.guidattributes.GUIDStorageInterface;
 import edu.umass.cs.contextservice.logging.ContextServiceLogger;
@@ -145,7 +145,7 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 			bw.write(str+"\n");
 			
 			
-			str = "DROP TABLE IF EXISTS `"+RegionMappingDataStorageDB.ATTR_INDEX_TABLE_NAME+"`;";
+			str = "DROP TABLE IF EXISTS `"+DBConstants.ATTR_INDEX_TABLE_NAME+"`;";
 			bw.write(str+"\n");
 			
 			str = "/*!40101 SET @saved_cs_client     = @@character_set_client */;";
@@ -164,14 +164,14 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 			bw.write(str+"\n");
 			
 			
-			str = "LOCK TABLES `"+RegionMappingDataStorageDB.ATTR_INDEX_TABLE_NAME+"` WRITE;";
+			str = "LOCK TABLES `"+DBConstants.ATTR_INDEX_TABLE_NAME+"` WRITE;";
 			bw.write(str+"\n");
 			
-			str = "/*!40000 ALTER TABLE `"+RegionMappingDataStorageDB.ATTR_INDEX_TABLE_NAME+"` DISABLE KEYS */;";
+			str = "/*!40000 ALTER TABLE `"+DBConstants.ATTR_INDEX_TABLE_NAME+"` DISABLE KEYS */;";
 			bw.write(str+"\n");
 			
 			
-			String attrInsertQuery = "INSERT INTO `"+RegionMappingDataStorageDB.ATTR_INDEX_TABLE_NAME
+			String attrInsertQuery = "INSERT INTO `"+DBConstants.ATTR_INDEX_TABLE_NAME
 									+"` ";
 			
 			String currLine;
@@ -243,7 +243,7 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 						{
 							attrInsertQuery = attrInsertQuery + ";";
 							bw.write(attrInsertQuery+"\n");
-							attrInsertQuery = "INSERT INTO `"+RegionMappingDataStorageDB.ATTR_INDEX_TABLE_NAME
+							attrInsertQuery = "INSERT INTO `"+DBConstants.ATTR_INDEX_TABLE_NAME
 									+"` ";
 							
 							//attrInsertQuery = attrInsertQuery 
@@ -285,7 +285,7 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 			bw.write(str+"\n");
 			
 			
-			str = "DROP TABLE IF EXISTS `"+RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME+"`;";
+			str = "DROP TABLE IF EXISTS `"+DBConstants.GUID_HASH_TABLE_NAME+"`;";
 			bw.write(str+"\n");
 			
 			
@@ -304,14 +304,14 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 			bw.write(str+"\n");
 			
 			
-			str = "LOCK TABLES `"+RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME+"` WRITE;";
+			str = "LOCK TABLES `"+DBConstants.GUID_HASH_TABLE_NAME+"` WRITE;";
 			bw.write(str+"\n");
 			
 			str = "/*!40000 ALTER TABLE `guidHashDataStorage` DISABLE KEYS */;";
 			bw.write(str+"\n");
 			
 			
-			String hashInsertQuery = "INSERT INTO `"+RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME
+			String hashInsertQuery = "INSERT INTO `"+DBConstants.GUID_HASH_TABLE_NAME
 					+"` ";
 			
 			br.close();
@@ -380,17 +380,8 @@ public class BulkLoadDataInMySQLUsingDumpSyntax
 						{
 							hashInsertQuery = hashInsertQuery + ";";
 							bw.write(hashInsertQuery+"\n");
-							hashInsertQuery = "INSERT INTO `"+RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME
+							hashInsertQuery = "INSERT INTO `"+DBConstants.GUID_HASH_TABLE_NAME
 									+"` ";
-							
-							//hashInsertQuery = hashInsertQuery 
-							//		+ "( "+RegionMappingDataStorageDB.GUID_COL_NAME;
-							
-//							for(int i=0; i<attributeOrderList.size(); i++)
-//							{
-//								String attrName = attributeOrderList.get(i);
-//								//hashInsertQuery = hashInsertQuery + ","+attrName;
-//							}
 					
 							//hashInsertQuery = hashInsertQuery + ") VALUES ";
 							hashInsertQuery = hashInsertQuery + " VALUES ";

@@ -4,7 +4,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-public class ClientConfigReply extends BasicContextServicePacket
+public class ClientConfigReply extends ContextServicePacket
 {
 	private enum Keys {NodeConfigArray, AttributeArray, SubspaceConfigArray};
 	

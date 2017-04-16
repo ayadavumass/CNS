@@ -11,7 +11,7 @@ import org.json.JSONObject;
  *
  * @param <Integer>
  */
-public class ClientConfigRequest extends BasicContextServicePacket
+public class ClientConfigRequest extends ContextServicePacket
 {	
 	private enum Keys {SOURCEIP, SOURCEPORT};
 	

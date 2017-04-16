@@ -4,8 +4,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-public class QueryMsgFromUserReply 
-									extends BasicContextServicePacket
+public class QueryMsgFromUserReply extends ContextServicePacket
 {
 	private enum Keys { QUERY, QUERY_GUID, GUIDs, USER_REQ_NUM, 
 		REPLY_SIZE, PRIVACY_SCHEME };

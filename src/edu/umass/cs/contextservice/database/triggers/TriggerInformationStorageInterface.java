@@ -5,6 +5,8 @@ import java.util.HashMap;
 
 import org.json.JSONObject;
 
+import edu.umass.cs.contextservice.database.recordformat.HashIndexGUIDRecord;
+
 /**
  * This interface defines the trigger information storage 
  * tables and its search and update calls.
@@ -21,16 +23,16 @@ public interface TriggerInformationStorageInterface
 			String groupGUID, String userIP, int userPort, 
 			long expiryTimeFromNow );
 	
-	public void getTriggerDataInfo( JSONObject oldValJSON, JSONObject updateAttrJSON, 
+	public void getTriggerDataInfo( HashIndexGUIDRecord oldGuidRec, 
+			JSONObject updateAttrJSON, 
 			HashMap<String, GroupGUIDInfoClass> oldValGroupGUIDMap, 
 			HashMap<String, GroupGUIDInfoClass> newValGroupGUIDMap, 
 			int requestType, JSONObject newUnsetAttrs,
-			boolean firstTimeInsert )
-						throws InterruptedException;
+			boolean firstTimeInsert ) throws InterruptedException;
 	
 	public int deleteExpiredSearchQueries();
 	
-	public boolean checkAndInsertSearchQueryRecordFromPrimaryTriggerSubspace( String groupGUID, 
-			String userIP, int userPort )
+	public boolean checkAndInsertSearchQueryRecordFromPrimaryTriggerSubspace
+			( String groupGUID, String userIP, int userPort )
 					throws UnknownHostException;
 }

@@ -5,8 +5,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 
-public class ValueUpdateToSubspaceRegionReplyMessage 
-										extends BasicContextServicePacket
+public class ValueUpdateToSubspaceRegionReplyMessage extends ContextServicePacket
 {
 	private enum Keys {VERSION_NUM, REQUEST_ID, TO_BE_REMOVED_GROUPS, TO_BE_ADDED_GROUPS};
 	

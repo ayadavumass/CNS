@@ -8,13 +8,13 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.HashMap;
 
-import org.json.JSONException;
+
 import org.json.JSONObject;
 
-import edu.umass.cs.contextservice.database.RegionMappingDataStorageDB;
+import edu.umass.cs.contextservice.database.DBConstants;
 import edu.umass.cs.contextservice.database.datasource.AbstractDataSource;
+import edu.umass.cs.contextservice.database.recordformat.HashIndexGUIDRecord;
 import edu.umass.cs.contextservice.logging.ContextServiceLogger;
-import edu.umass.cs.contextservice.schemes.RegionMappingBasedScheme;
 import edu.umass.cs.contextservice.utils.Utils;
 
 /**
@@ -24,24 +24,27 @@ import edu.umass.cs.contextservice.utils.Utils;
  */
 public class OldValueGroupGUIDs implements Runnable
 {
-	private JSONObject oldValJSON;
-	private JSONObject updateValJSON;
-	private JSONObject newUnsetAttrs;
+	private HashIndexGUIDRecord oldGuidRec;
 	private HashMap<String, GroupGUIDInfoClass> oldValGroupGUIDMap;
 	private final AbstractDataSource dataSource;
+	private final String oldGroupsQuery;
+	private final String newGroupsQuery;
+	private final String queriesWithAttrs;
 	
-	
-	public OldValueGroupGUIDs(JSONObject oldValJSON, 
-			JSONObject updateValJSON, JSONObject newUnsetAttrs,
+	public OldValueGroupGUIDs(HashIndexGUIDRecord oldGuid, 
 			HashMap<String, GroupGUIDInfoClass> oldValGroupGUIDMap,
-			AbstractDataSource dataSource )
+			AbstractDataSource dataSource, String oldGroupsQuery, 
+			String newGroupsQuery, String queriesWithAttrs )
 	{
-		this.oldValJSON = oldValJSON;
-		this.updateValJSON = updateValJSON;
-		this.newUnsetAttrs = newUnsetAttrs;
+		this.oldGuidRec = oldGuid;
 		this.oldValGroupGUIDMap = oldValGroupGUIDMap;
 		this.dataSource = dataSource;
+		this.oldGroupsQuery = oldGroupsQuery;
+		this.newGroupsQuery = newGroupsQuery;
+		this.queriesWithAttrs = queriesWithAttrs;
 	}
+	
+	
 	@Override
 	public void run() 
 	{
@@ -50,11 +53,10 @@ public class OldValueGroupGUIDs implements Runnable
 	
 	private void returnRemovedGroupGUIDs()
 	{
-		String tableName 			= RegionMappingDataStorageDB.ATTR_INDEX_TRIGGER_TABLE_NAME;
+		String tableName 			= DBConstants.ATTR_INDEX_TRIGGER_TABLE_NAME;
 		
-		assert(oldValJSON != null);
-		assert(oldValJSON.length() > 0);
-		JSONObject oldUnsetAttrs 	= RegionMappingBasedScheme.getUnsetAttrJSON(oldValJSON);
+		
+		JSONObject oldUnsetAttrs 	= oldGuidRec.getUnsetAttrJSON();
 		
 		// it can be empty but should not be null
 		assert( oldUnsetAttrs != null );
@@ -71,21 +73,17 @@ public class OldValueGroupGUIDs implements Runnable
 		
 		try
 		{
-			String queriesWithAttrs 
-				= TriggerInformationStorage.getQueriesThatContainAttrsInUpdate
-					(updateValJSON);
-			//String newTableName = "projTable";
-			
-			//String createTempTable = "CREATE TEMPORARY TABLE "+
-			//		newTableName+" AS ( "+queriesWithAttrs+" ) ";
-			
-			String oldGroupsQuery 
-				= TriggerInformationStorage.getQueryToGetOldValueGroups
-					(oldValJSON);
-			
-			String newGroupsQuery = TriggerInformationStorage.getQueryToGetNewValueGroups
-					( oldValJSON, updateValJSON, 
-							newUnsetAttrs );
+//			String queriesWithAttrs 
+//				= TriggerInformationStorage.getQueriesThatContainAttrsInUpdate
+//					(updateValJSON);
+//			
+//			String oldGroupsQuery 
+//				= TriggerInformationStorage.getQueryToGetOldValueGroups
+//					(oldValJSON);
+//			
+//			String newGroupsQuery = TriggerInformationStorage.getQueryToGetNewValueGroups
+//					( oldValJSON, updateValJSON, 
+//							newUnsetAttrs );
 			
 			String removedGroupQuery = "SELECT groupGUID, userIP, userPort FROM "+tableName
 					+ " WHERE "
@@ -116,10 +114,6 @@ public class OldValueGroupGUIDs implements Runnable
 			rs.close();
 		} 
 		catch (SQLException e)
-		{
-			e.printStackTrace();
-		}
-		catch (JSONException e)
 		{
 			e.printStackTrace();
 		}

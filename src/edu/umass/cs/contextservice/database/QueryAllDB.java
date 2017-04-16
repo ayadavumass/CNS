@@ -68,7 +68,7 @@ public class QueryAllDB
 			myConn = dataSource.getConnection();
 			stmt   = myConn.createStatement();
 			
-			String tableName = RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME;
+			String tableName = DBConstants.GUID_HASH_TABLE_NAME;
 			String newTableCommand = "create table "+tableName+" ( "
 				      + " nodeGUID Binary(20) PRIMARY KEY";
 			
@@ -200,7 +200,7 @@ public class QueryAllDB
 					{
 						anonymizedIDToGUIDMapping 
 							= rs.getString(
-								RegionMappingDataStorageDB.anonymizedIDToGUIDMappingColName);
+									DBConstants.ANONYMIZEDID_TO_GUID_COLNAME);
 						
 						if(anonymizedIDToGUIDMapping != null)
 						{
@@ -301,7 +301,7 @@ public class QueryAllDB
 	{
 		HashMap<String, AttributeValueRange> qAttrValRange = QueryParser.parseQuery(query);
 		
-		String tableName = RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME;
+		String tableName = DBConstants.GUID_HASH_TABLE_NAME;
 		String mysqlQuery = "";
 		
 		// if privacy is enabled then we also fetch 
@@ -309,7 +309,7 @@ public class QueryAllDB
 		if(ContextServiceConfig.privacyEnabled)
 		{
 			mysqlQuery = "SELECT nodeGUID , "
-						+RegionMappingDataStorageDB.anonymizedIDToGUIDMappingColName
+						+DBConstants.ANONYMIZEDID_TO_GUID_COLNAME
 						+" from "+tableName+" WHERE ( ";
 		}
 		else
@@ -423,7 +423,7 @@ public class QueryAllDB
 		Statement stmt 			= null;
 		
 		String selectQuery 		= "SELECT * ";
-		String tableName 		= RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME;
+		String tableName 		= DBConstants.GUID_HASH_TABLE_NAME;
 		
 		JSONObject oldValueJSON = new JSONObject();
 		
@@ -490,12 +490,12 @@ public class QueryAllDB
     public void storeGUIDInPrimarySubspace(String tableName, String nodeGUID, 
     		JSONObject updatedAttrValJSON, int updateOrInsert) throws JSONException
     {
-    	if( updateOrInsert == RegionMappingDataStorageDB.INSERT_REC )
+    	if( updateOrInsert == DBConstants.INSERT_REC )
     	{
     		this.performStoreGUIDInPrimarySubspaceInsert
     			(tableName, nodeGUID, updatedAttrValJSON);
     	}
-    	else if( updateOrInsert == RegionMappingDataStorageDB.UPDATE_REC )
+    	else if( updateOrInsert == DBConstants.UPDATE_REC )
     	{
     		this.performStoreGUIDInPrimarySubspaceUpdate
     				(tableName, nodeGUID, updatedAttrValJSON);

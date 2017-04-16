@@ -4,17 +4,13 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-public class QueryMesgToSubspaceRegionReply extends BasicContextServicePacket
+public class QueryMesgToSubspaceRegionReply extends ContextServicePacket
 {
 	private enum Keys { REQUESTID, GROUP_GUID, RESULT_GUIDS, REPLY_SIZE, 
 				PRIVACY_SCHEME, SUBSPACE_ID};
 	
 	private final long requestID;
 	
-	// additional info for trigger to update groups on
-	// value updates
-	// whole query
-	// private final String query;
 	// GUID of group associated with this query
 	private final String groupGUID;
 	

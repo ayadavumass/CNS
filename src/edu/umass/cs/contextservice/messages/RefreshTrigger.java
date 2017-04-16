@@ -4,17 +4,16 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-public class RefreshTrigger extends BasicContextServicePacket
+public class RefreshTrigger extends ContextServicePacket
 {
 	private enum Keys {TO_BE_REMOVED, TO_BE_ADDED, 
 		VERSION_NUM, GUID, UPDATE_START_TIME, NUM_REMOVED, NUM_ADDED};
 	
-	//private final String query;  // original query sent by the user.
 	private final JSONArray toBeRemoved;
 	private final JSONArray toBeAdded;
 	private final long versionNum;
 	private final String updateInGUID;
-	//private final int addRemove;
+	
 	// indicates the update start time for this trigger, the udpate that caused this trigger. 
 	private final long updStartTime;
 	

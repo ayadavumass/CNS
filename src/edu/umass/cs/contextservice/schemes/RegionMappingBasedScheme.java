@@ -407,7 +407,6 @@ public class RegionMappingBasedScheme extends AbstractScheme
 										(currReq, storeQueryForTrigger);
 	}
 	
-	
 	private void processValueUpdateFromGNS( ValueUpdateFromGNS valueUpdateFromGNS )
 	{
 		String GUID 			  		= valueUpdateFromGNS.getGUID();
@@ -502,62 +501,6 @@ public class RegionMappingBasedScheme extends AbstractScheme
 		guidAttrValProcessing.processUpdateFromGNS(updateReq);
 	}
 	
-	public static JSONObject getUnsetAttrJSON(JSONObject attrValJSON)
-	{
-		JSONObject unsetAttrJSON = null;
-		
-		try
-		{
-			if( attrValJSON.has(RegionMappingDataStorageDB.unsetAttrsColName) )
-			{
-				String jsonString 
-						= attrValJSON.getString( RegionMappingDataStorageDB.unsetAttrsColName );
-				
-				if( jsonString != null )
-				{
-					if( jsonString.length() > 0 )
-					{
-						unsetAttrJSON = new JSONObject(jsonString);
-					}
-				}
-			}
-		}
-		catch(JSONException jsonException)
-		{
-			jsonException.printStackTrace();
-		}
-		return unsetAttrJSON;
-	}
-	
-	public static boolean checkIfAnonymizedIDToGuidInfoAlreadyStored(JSONObject oldValJSON) 
-					throws JSONException
-	{
-		boolean alreadyStored = false;
-		if( oldValJSON.has(RegionMappingDataStorageDB.anonymizedIDToGUIDMappingColName) )
-		{
-			String jsonArrayString = oldValJSON.getString
-									(RegionMappingDataStorageDB.anonymizedIDToGUIDMappingColName);
-			
-			if( jsonArrayString != null )
-			{
-				// We don't need to compare the actual value,
-				// because this information change causes whole
-				// anonymized ID to change, so anonymizedIDToGUIDMapping
-				// either inserted or deleted, but never updated for 
-				// an anonymized ID.
-				if(jsonArrayString.length() > 0)
-				{
-					alreadyStored = true;
-					return alreadyStored;
-				}
-			}
-			return alreadyStored;
-		}
-		else
-		{
-			return alreadyStored;
-		}
-	}
 	
 	private void processGetMessage(GetMessage getMessage)
 	{
@@ -586,7 +529,7 @@ public class RegionMappingBasedScheme extends AbstractScheme
 			try
 			{
 				myConn = this.dataSource.getConnection();
-				valueJSON= this.hyperspaceDB.getGUIDStoredUsingHashIndex(GUID, myConn);
+				valueJSON= this.hyperspaceDB.getGUIDStoredUsingHashIndex(GUID, myConn).getAttrValJSON();
 			}
 			catch(SQLException sqlex)
 			{
@@ -767,35 +710,6 @@ public class RegionMappingBasedScheme extends AbstractScheme
 			attributeArray.put(attrName);
 		}
 		
-//		HashMap<Integer, Vector<SubspaceInfo>> subspaceInfoMap = 
-//				this.subspaceConfigurator.getSubspaceInfoMap();
-//		
-//		assert(subspaceInfoMap != null);
-//		
-//		Iterator<Integer> subspaceIter = subspaceInfoMap.keySet().iterator();
-//		
-//		while( subspaceIter.hasNext() )
-//		{
-//			// taking first replica, as we need distinct subspace attrs
-//			Vector<SubspaceInfo> subsapceInfoVect 
-//												= subspaceInfoMap.get( subspaceIter.next() );
-//			
-//			SubspaceInfo currSubspaceInfo = subsapceInfoVect.get(0);
-//			
-//			JSONArray attrsOfSubspace = new JSONArray();
-//			HashMap<String, AttributePartitionInfo> currSubInfoMap = 
-//								currSubspaceInfo.getAttributesOfSubspace();
-//			
-//			attrIter = currSubInfoMap.keySet().iterator();
-//			
-//			while( attrIter.hasNext() )
-//			{
-//				String attrName = attrIter.next();
-//				attrsOfSubspace.put(attrName);
-//			}
-//			subspaceConfigArray.put(attrsOfSubspace);
-//		}
-		
 		InetSocketAddress sourceSocketAddr = new InetSocketAddress
 				(clientConfigRequest.getSourceIP(),
 				clientConfigRequest.getSourcePort());
@@ -858,6 +772,7 @@ public class RegionMappingBasedScheme extends AbstractScheme
 				+ " mesg from " + this.getMyID() +" to node "
 				+queryMesgToSubspaceRegion.getSender());
 	}
+	
 	
 	private void processValueUpdateToSubspaceRegionMessage(
 				ValueUpdateToSubspaceRegionMessage 

@@ -11,6 +11,7 @@ import org.json.JSONObject;
 
 import edu.umass.cs.contextservice.config.ContextServiceConfig;
 import edu.umass.cs.contextservice.database.AbstractDataStorageDB;
+import edu.umass.cs.contextservice.database.recordformat.HashIndexGUIDRecord;
 import edu.umass.cs.contextservice.database.triggers.GroupGUIDInfoClass;
 import edu.umass.cs.contextservice.logging.ContextServiceLogger;
 import edu.umass.cs.contextservice.messages.QueryMesgToSubspaceRegion;
@@ -95,14 +96,17 @@ public class TriggerProcessing implements
 		valueUpdateToSubspaceRegionMessage, HashMap<String, GroupGUIDInfoClass> removedGroups, 
 		HashMap<String, GroupGUIDInfoClass> addedGroups ) throws InterruptedException
 	{
-		JSONObject oldValJSON = valueUpdateToSubspaceRegionMessage.getOldValJSON();
+		HashIndexGUIDRecord oldGuidRec 
+						= HashIndexGUIDRecord.fromJSON(
+								valueUpdateToSubspaceRegionMessage.getOldValJSON());
+		
 		JSONObject updateAttrJSON = valueUpdateToSubspaceRegionMessage.getUpdateAttrValJSON();
 		int requestType = valueUpdateToSubspaceRegionMessage.getOperType();
 		JSONObject newUnsetAttr = valueUpdateToSubspaceRegionMessage.getNewUnsetAttrs();
 		boolean firstTimeInsert = valueUpdateToSubspaceRegionMessage.getFirstTimeInsert();
 		
 		
-		this.regionMappingDataStorageDB.getTriggerDataInfo( oldValJSON, updateAttrJSON, 
+		this.regionMappingDataStorageDB.getTriggerDataInfo( oldGuidRec, updateAttrJSON, 
 				removedGroups, addedGroups, requestType, newUnsetAttr, firstTimeInsert); 
 	}
 	

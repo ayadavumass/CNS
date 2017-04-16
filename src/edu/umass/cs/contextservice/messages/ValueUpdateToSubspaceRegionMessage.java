@@ -3,8 +3,7 @@ package edu.umass.cs.contextservice.messages;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-public class ValueUpdateToSubspaceRegionMessage 
-								extends BasicContextServicePacket
+public class ValueUpdateToSubspaceRegionMessage extends ContextServicePacket
 {
 	// Value node that receives the message has to add entry, 
 	// or remove entry or do remove and add both, in that order 
@@ -29,7 +28,7 @@ public class ValueUpdateToSubspaceRegionMessage
 //	// as when an entry is added to a subspace all the attributes are added.
 	private final JSONObject oldValJSON;
 	
-	//FIXME: need to optimize, as we are sending reducndant data here
+	//FIXME: need to optimize, as we are sending redundant data here
 	private final JSONObject updateAttrValJSON;
 	
 	private final JSONObject newUnsetAttrs;

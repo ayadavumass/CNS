@@ -9,7 +9,7 @@ import org.json.JSONObject;
  * @author ayadav
  */
 
-public class ValueUpdateFromGNS extends BasicContextServicePacket
+public class ValueUpdateFromGNS extends ContextServicePacket
 {
 	private enum Keys {VERSION_NUM, GUID, ATTR_VALUE_PAIR, USER_REQUESTID, 
 		SOURCEIP, SOURCEPORT, UPDATE_START_TIME, ANONYMIZEDID_TO_GUID_MAPPING, 

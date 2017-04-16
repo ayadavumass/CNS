@@ -3,7 +3,7 @@ package edu.umass.cs.contextservice.messages;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-public class GetMessage extends BasicContextServicePacket
+public class GetMessage extends ContextServicePacket
 {
 	private enum Keys {USER_REQ_NUM, GUIDsToGet, SOURCEIP, SOURCEPORT};
 	
@@ -11,8 +11,6 @@ public class GetMessage extends BasicContextServicePacket
 	private final String guidToGet;
 	private final String sourceIP;
 	private final int sourcePort;
-	// query is sent so that bulk get only returns GUIDs that satisfy query
-	//private final String query;
 	
 	public GetMessage(Integer initiator, long getReqID, String guidToGet, 
 			String sourceIP, int sourcePort)

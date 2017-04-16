@@ -3,7 +3,7 @@ package edu.umass.cs.contextservice.messages;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-public class ValueUpdateFromGNSReply extends BasicContextServicePacket
+public class ValueUpdateFromGNSReply extends ContextServicePacket
 {
 	// start time is the time when update started,
 	// context time is the time at which context service recvd query
@@ -22,8 +22,6 @@ public class ValueUpdateFromGNSReply extends BasicContextServicePacket
 	
 	public ValueUpdateFromGNSReply(JSONObject json) throws JSONException
 	{
-		//ValueUpdateFromGNS((Integer)0, json.getString(Keys.GUID.toString()), 
-		//		json.getDouble(Keys.OLDVALUE.toString()), json.getDouble(Keys.NEWVALUE.toString()));
 		super(json);
 		this.versionNum = json.getLong(Keys.VERSION_NUM.toString());
 		this.userReqNum = json.getLong(Keys.USER_REQ_NUM.toString());
@@ -50,20 +48,5 @@ public class ValueUpdateFromGNSReply extends BasicContextServicePacket
 	
 	public static void main(String[] args)
 	{
-		/*int[] group = {3, 45, 6, 19};
-		MetadataMsgToValuenode<Integer> se = 
-		new MetadataMsgToValuenode<Integer>(4, "name1", 2, Util.arrayToIntSet(group), Util.arrayToIntSet(group));
-		try
-		{
-			ContextServiceLogger.getLogger().fine(se);
-			MetadataMsgToValuenode<Integer> se2 = new MetadataMsgToValuenode<Integer>(se.toJSONObject());
-			ContextServiceLogger.getLogger().fine(se2);
-			assert(se.toString().length()==se2.toString().length());
-			assert(se.toString().indexOf("}") == se2.toString().indexOf("}"));
-			assert(se.toString().equals(se2.toString())) : se.toString() + "!=" + se2.toString();
-		} catch(JSONException je)
-		{
-			je.printStackTrace();
-		}*/
 	}
 }

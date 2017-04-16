@@ -26,20 +26,8 @@ public abstract class ContextServicePacket extends ProtocolPacket<Integer, Conte
 {
 	public static final String PACKET_TYPE = JSONPacket.PACKET_TYPE;
 	
-	// these are internal nio fields to get the sender ip and port
-	// sender ip and port when a sender is behind NAT can only be obtained
-	// like this, sender cannot send it in the packet.
-	//private final static String SENDERADDRESS = MessageNIOTransport.SNDR_IP_FIELD;
-	//private final static String SENDERPORT 	 = MessageNIOTransport.SNDR_PORT_FIELD;
-	//public final static String SENDERADDRESS = JSONNIOTransport.DEFAULT_IP_FIELD;
-	//public final static String SENDERPORT = JSONNIOTransport.DEFAULT_PORT_FIELD;
-	
 	public static final String HANDLER_METHOD_PREFIX = "handle";
 	
-	//private String sourceIP;
-	//private int sourcePort;
-	
-	/********************************* End of ContextServicePacket ***********************/
 	public enum PacketType implements IntegerPacketType
 	{
 		// query mesg
@@ -48,21 +36,17 @@ public abstract class ContextServicePacket extends ProtocolPacket<Integer, Conte
 		QUERY_MSG_FROM_USER_REPLY(3),     		// reply to the query mesg from user, reply goes back to the original querier
 		VALUE_UPDATE_MSG_FROM_GNS_REPLY(4),  	// reply that goes back to GNS or whoever issues this message.
 		REFRESH_TRIGGER(5),   					// trigger sent to the querier to refresh
-		//QUERIER_TO_RELAYSERVICE(6), 			// queries sends this message to relay service, for relay service to communicate with users.
-		//RELAY_TO_RELAY_MSG(7),      			// message sent between relay service nodes.
-		QUERY_MESG_TO_SUBSPACE_REGION(8),
-		QUERY_MESG_TO_SUBSPACE_REGION_REPLY(9),
-		VALUEUPDATE_TO_SUBSPACE_REGION_MESSAGE(10),
-		GET_MESSAGE(11),
-		GET_REPLY_MESSAGE(12),
-		VALUEUPDATE_TO_SUBSPACE_REGION_REPLY_MESSAGE(13),
-		CONFIG_REQUEST(17),
-		CONFIG_REPLY(18),
-		ACLUPDATE_TO_SUBSPACE_REGION_MESSAGE(19),
-		ACLUPDATE_TO_SUBSPACE_REGION_REPLY_MESSAGE(20),
+		QUERY_MESG_TO_SUBSPACE_REGION(6),
+		QUERY_MESG_TO_SUBSPACE_REGION_REPLY(7),
+		VALUEUPDATE_TO_SUBSPACE_REGION_MESSAGE(8),
+		GET_MESSAGE(9),
+		GET_REPLY_MESSAGE(10),
+		VALUEUPDATE_TO_SUBSPACE_REGION_REPLY_MESSAGE(11),
+		CONFIG_REQUEST(12),
+		CONFIG_REPLY(13),
 		// just for throughput testing.
-		NOOP_MEESAGE(21),
-		NOOP_REPLY_MESSAGE(22);
+		NOOP_MEESAGE(14),
+		NOOP_REPLY_MESSAGE(15);
 		
 		
 		private final int number;
@@ -73,7 +57,7 @@ public abstract class ContextServicePacket extends ProtocolPacket<Integer, Conte
 		public static final IntegerPacketTypeMap<PacketType> intToType = 
 				new IntegerPacketTypeMap<PacketType>( PacketType.values() );
 		
-		//public static ContextServicePacket.PacketType[] getPacketTypes()
+		
 		public static List<ContextServicePacket.PacketType> getPacketTypes()
 		{
 			IntegerPacketTypeMap<PacketType> packetTypeMap = 
@@ -90,8 +74,7 @@ public abstract class ContextServicePacket extends ProtocolPacket<Integer, Conte
 		}
 	}
 	
-	/********************************* End of ContextServicePacketType ***********************/
-	/**************************** Start of ContextServicePacketType class map **************/
+	
 	private static final HashMap<ContextServicePacket.PacketType, Class<?>> typeMap = 
 			new HashMap<ContextServicePacket.PacketType, Class<?>>();
 	static
@@ -120,15 +103,10 @@ public abstract class ContextServicePacket extends ProtocolPacket<Integer, Conte
 				ClientConfigRequest.class);
 		typeMap.put(ContextServicePacket.PacketType.CONFIG_REPLY,
 				ClientConfigReply.class);
-		typeMap.put( ContextServicePacket.PacketType.ACLUPDATE_TO_SUBSPACE_REGION_MESSAGE,
-				ACLUpdateToSubspaceRegionMessage.class );
-		typeMap.put(ContextServicePacket.PacketType.ACLUPDATE_TO_SUBSPACE_REGION_REPLY_MESSAGE,
-				ACLUpdateToSubspaceRegionReplyMessage.class);
 		typeMap.put(ContextServicePacket.PacketType.NOOP_MEESAGE,
 				NoopMessage.class);
 		typeMap.put(ContextServicePacket.PacketType.NOOP_REPLY_MESSAGE,
 				NoopReplyMessage.class);
-		
 		
 		
 		for( ContextServicePacket.PacketType type : ContextServicePacket.PacketType.intToType.values() )
@@ -136,11 +114,16 @@ public abstract class ContextServicePacket extends ProtocolPacket<Integer, Conte
 			assert(getPacketTypeClassName(type)!=null) : type;
 		}
 	}
-	/**************************** End of ReconfigurationpacketType class map **************/
 
 	protected ContextServicePacket(Integer initiator)
 	{
 		super(initiator);
+	}
+	
+	public ContextServicePacket(Integer initiator, PacketType t) 
+	{
+		super(initiator);
+		this.setType(t);	
 	}
 
 	public ContextServicePacket(JSONObject json) throws JSONException
@@ -200,10 +183,10 @@ public abstract class ContextServicePacket extends ProtocolPacket<Integer, Conte
 		return typeMap.get(type)!=null ? typeMap.get(type).getSimpleName() : null;
 	}
 
-	public static BasicContextServicePacket getContextServicePacket(JSONObject json, 
+	public static ContextServicePacket getContextServicePacket(JSONObject json, 
 		Map<ContextServicePacket.PacketType,Class<?>> typeMap) throws JSONException 
 	{
-		BasicContextServicePacket csPacket = null;
+		ContextServicePacket csPacket = null;
 		
 		try
 		{
@@ -212,7 +195,7 @@ public abstract class ContextServicePacket extends ProtocolPacket<Integer, Conte
 			
 			if(csType!=null && getPacketTypeClassName(csType)!=null) 
 			{
-				csPacket = (BasicContextServicePacket)(Class.forName(
+				csPacket = (ContextServicePacket)(Class.forName(
 						"edu.umass.cs.contextservice.messages." + 
 				getPacketTypeClassName(csType)).getConstructor(JSONObject.class).newInstance(json));
 			}
@@ -226,7 +209,7 @@ public abstract class ContextServicePacket extends ProtocolPacket<Integer, Conte
 		return csPacket;
 	}
 	
-	public static BasicContextServicePacket getContextServicePacket
+	public static ContextServicePacket getContextServicePacket
 									(JSONObject json) throws JSONException
 	{
 		return getContextServicePacket(json, typeMap);
@@ -300,7 +283,7 @@ public abstract class ContextServicePacket extends ProtocolPacket<Integer, Conte
 		}
 		return allTypes;
 	}
-	/************************* End of assertion methods **************************************************/
+	
 	
 	public static void main(String[] args)
 	{

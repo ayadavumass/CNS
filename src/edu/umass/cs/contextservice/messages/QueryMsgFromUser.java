@@ -3,7 +3,7 @@ package edu.umass.cs.contextservice.messages;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-public class QueryMsgFromUser extends BasicContextServicePacket
+public class QueryMsgFromUser extends ContextServicePacket
 {
 	private enum Keys {QUERY, USER_REQ_NUM, EXPIRY_TIME, 
 							SOURCEIP, SOURCEPORT, PRIVACY_SCHEME};

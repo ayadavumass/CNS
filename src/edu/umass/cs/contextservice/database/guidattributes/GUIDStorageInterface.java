@@ -7,6 +7,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import edu.umass.cs.contextservice.database.recordformat.HashIndexGUIDRecord;
 import edu.umass.cs.contextservice.regionmapper.helper.AttributeValueRange;
 
 
@@ -25,7 +26,8 @@ public interface GUIDStorageInterface
 						( HashMap<String, AttributeValueRange> queryAttrValMap, 
 								JSONArray resultArray);
 	
-	public JSONObject getGUIDStoredUsingHashIndex( String guid, Connection myConn );
+	public HashIndexGUIDRecord getGUIDStoredUsingHashIndex
+											( String guid, Connection myConn );
 	
 	public void storeGUIDUsingHashIndex(String nodeGUID, JSONObject jsonToWrite, 
     		int updateOrInsert, Connection myConn) throws JSONException;
@@ -35,7 +37,6 @@ public interface GUIDStorageInterface
     					throws JSONException;
 	
 	public void deleteGUIDFromTable(String tableName, String nodeGUID);
-	
 	
 	public String getAttrIndexTableCreationCmd();
 	

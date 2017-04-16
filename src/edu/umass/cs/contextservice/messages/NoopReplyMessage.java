@@ -3,11 +3,8 @@ package edu.umass.cs.contextservice.messages;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-public class NoopReplyMessage extends BasicContextServicePacket
-{
-	// query is sent so that bulk get only returns GUIDs that satisfy query
-	//private final String query;
-	
+public class NoopReplyMessage extends ContextServicePacket
+{	
 	public NoopReplyMessage(Integer initiator)
 	{
 		super(initiator, ContextServicePacket.PacketType.NOOP_REPLY_MESSAGE);

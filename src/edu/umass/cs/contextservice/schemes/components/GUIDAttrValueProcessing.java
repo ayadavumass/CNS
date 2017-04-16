@@ -16,7 +16,8 @@ import org.json.JSONObject;
 import edu.umass.cs.contextservice.config.ContextServiceConfig;
 import edu.umass.cs.contextservice.config.ContextServiceConfig.PrivacySchemes;
 import edu.umass.cs.contextservice.database.AbstractDataStorageDB;
-import edu.umass.cs.contextservice.database.RegionMappingDataStorageDB;
+import edu.umass.cs.contextservice.database.DBConstants;
+import edu.umass.cs.contextservice.database.recordformat.HashIndexGUIDRecord;
 import edu.umass.cs.contextservice.logging.ContextServiceLogger;
 import edu.umass.cs.contextservice.messages.QueryMesgToSubspaceRegion;
 import edu.umass.cs.contextservice.messages.QueryMesgToSubspaceRegionReply;
@@ -280,8 +281,8 @@ public class GUIDAttrValueProcessing
 			myConn = this.hyperspaceDB.getDataSource().getConnection();
 			
 			long start = System.currentTimeMillis();
-			JSONObject oldValueJSON 
-						 = this.hyperspaceDB.getGUIDStoredUsingHashIndex(GUID, myConn);
+			HashIndexGUIDRecord oldGuidRecord 
+						= this.hyperspaceDB.getGUIDStoredUsingHashIndex(GUID, myConn);
 			long end = System.currentTimeMillis();
 			
 			if(ContextServiceConfig.PROFILER_ENABLED)
@@ -289,10 +290,10 @@ public class GUIDAttrValueProcessing
 			
 			int updateOrInsert 			= -1;
 			
-			if( oldValueJSON.length() == 0 )
+			if( oldGuidRecord.getAttrValJSON().length() == 0 )
 			{
 				firstTimeInsert = true;
-				updateOrInsert = RegionMappingDataStorageDB.INSERT_REC;
+				updateOrInsert = DBConstants.INSERT_REC;
 			}
 			else
 			{
@@ -301,10 +302,11 @@ public class GUIDAttrValueProcessing
 					profStats.incrementIncomingUpdateRate();
 				}
 				firstTimeInsert = false;
-				updateOrInsert = RegionMappingDataStorageDB.UPDATE_REC;
+				updateOrInsert = DBConstants.UPDATE_REC;
 			}
 			
-			JSONObject jsonToWrite = getJSONToWriteInPrimarySubspace( oldValueJSON, 
+			//FIXME: need to convert this from JSON to a meesage format.
+			JSONObject jsonToWrite = getJSONToWriteInPrimarySubspace( oldGuidRecord, 
 					attrValuePairs, anonymizedIDToGuidMapping );
 			
 			start = System.currentTimeMillis();
@@ -317,7 +319,7 @@ public class GUIDAttrValueProcessing
 				updateReq.getUpdateStats().setHashIndexWriteTime(end-start);
 			
 			// process update at secondary subspaces.
-			updateGUIDInAttrIndexes( oldValueJSON , 
+			updateGUIDInAttrIndexes( oldGuidRecord , 
 					firstTimeInsert , attrValuePairs , GUID , 
 					requestID, updateStartTime, jsonToWrite, updateReq  );
 		}
@@ -345,14 +347,14 @@ public class GUIDAttrValueProcessing
 	}
 	
 	
-	private void updateGUIDInAttrIndexes( JSONObject oldValueJSON , 
+	private void updateGUIDInAttrIndexes( HashIndexGUIDRecord oldGuidRecord , 
 			boolean firstTimeInsert , JSONObject updatedAttrValJSON , 
 			String GUID , long requestID, long updateStartTime, 
 			JSONObject primarySubspaceJSON, UpdateInfo updateReq )
 					throws JSONException
 	{
 		guidValueProcessingOnUpdate
-		( oldValueJSON,  updatedAttrValJSON, GUID, requestID, firstTimeInsert, 
+		( oldGuidRecord,  updatedAttrValJSON, GUID, requestID, firstTimeInsert, 
 				updateStartTime, primarySubspaceJSON, updateReq );
 	}
 }

@@ -16,7 +16,7 @@ import org.json.JSONObject;
 import edu.umass.cs.contextservice.attributeInfo.AttributeTypes;
 import edu.umass.cs.contextservice.config.ContextServiceConfig;
 import edu.umass.cs.contextservice.config.ContextServiceConfig.PrivacySchemes;
-import edu.umass.cs.contextservice.database.RegionMappingDataStorageDB;
+import edu.umass.cs.contextservice.database.DBConstants;
 import edu.umass.cs.contextservice.database.QueryAllDB;
 import edu.umass.cs.contextservice.gns.GNSCalls;
 import edu.umass.cs.contextservice.logging.ContextServiceLogger;
@@ -369,7 +369,7 @@ public class QueryAllScheme extends AbstractScheme
 		long requestID 	 		= updateReq.getRequestId();
 		
 		// get the old value and process the update in primary subspace and other subspaces.
-		String tableName = RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME;
+		String tableName = DBConstants.GUID_HASH_TABLE_NAME;
 		
 		try
 		{
@@ -380,11 +380,11 @@ public class QueryAllScheme extends AbstractScheme
 			
 			if( oldValueJSON.length() == 0 )
 			{
-				updateOrInsert = RegionMappingDataStorageDB.INSERT_REC;
+				updateOrInsert = DBConstants.INSERT_REC;
 			}
 			else
 			{
-				updateOrInsert = RegionMappingDataStorageDB.UPDATE_REC;
+				updateOrInsert = DBConstants.UPDATE_REC;
 			}
 			
 			// default values are set for all attributes for hyperspace indexing.

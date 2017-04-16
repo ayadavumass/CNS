@@ -14,6 +14,7 @@ import java.util.List;
 
 import edu.umass.cs.contextservice.attributeInfo.AttributeTypes;
 import edu.umass.cs.contextservice.config.ContextServiceConfig;
+import edu.umass.cs.contextservice.database.DBConstants;
 import edu.umass.cs.contextservice.database.RegionMappingDataStorageDB;
 import edu.umass.cs.contextservice.database.datasource.AbstractDataSource;
 import edu.umass.cs.contextservice.logging.ContextServiceLogger;
@@ -212,7 +213,7 @@ public class BulkLoadDataInMySQLFromAFile
 		
 		
 		String cmd = getMySqlLoadCommand(attrIndexFilePath, 
-				RegionMappingDataStorageDB.ATTR_INDEX_TABLE_NAME, 
+				DBConstants.ATTR_INDEX_TABLE_NAME, 
 				attributeOrderList);
 		
 		
@@ -220,7 +221,7 @@ public class BulkLoadDataInMySQLFromAFile
 		
 		
 		cmd = getMySqlLoadCommand(hashIndexFilePath, 
-				RegionMappingDataStorageDB.GUID_HASH_TABLE_NAME, 
+				DBConstants.GUID_HASH_TABLE_NAME, 
 				attributeOrderList);
 		
 		MySqlOperationThread hashIndexCmd = new MySqlOperationThread(cmd);

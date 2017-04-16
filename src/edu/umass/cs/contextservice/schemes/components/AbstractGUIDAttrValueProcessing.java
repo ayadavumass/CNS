@@ -15,7 +15,8 @@ import edu.umass.cs.contextservice.attributeInfo.AttributeMetaInfo;
 import edu.umass.cs.contextservice.attributeInfo.AttributeTypes;
 import edu.umass.cs.contextservice.config.ContextServiceConfig;
 import edu.umass.cs.contextservice.database.AbstractDataStorageDB;
-import edu.umass.cs.contextservice.database.RegionMappingDataStorageDB;
+import edu.umass.cs.contextservice.database.DBConstants;
+import edu.umass.cs.contextservice.database.recordformat.HashIndexGUIDRecord;
 import edu.umass.cs.contextservice.hyperspace.storage.AttributePartitionInfo;
 import edu.umass.cs.contextservice.logging.ContextServiceLogger;
 import edu.umass.cs.contextservice.messages.QueryMesgToSubspaceRegion;
@@ -26,15 +27,12 @@ import edu.umass.cs.contextservice.queryparsing.QueryInfo;
 import edu.umass.cs.contextservice.regionmapper.AbstractRegionMappingPolicy;
 import edu.umass.cs.contextservice.regionmapper.helper.AttributeValueRange;
 import edu.umass.cs.contextservice.regionmapper.helper.ValueSpaceInfo;
-import edu.umass.cs.contextservice.schemes.RegionMappingBasedScheme;
+//import edu.umass.cs.contextservice.schemes.RegionMappingBasedScheme;
 import edu.umass.cs.contextservice.updates.UpdateInfo;
 import edu.umass.cs.nio.JSONMessenger;
 
 public abstract class AbstractGUIDAttrValueProcessing
-{
-//	protected final HashMap<Integer, Vector<SubspaceInfo>> 
-//																subspaceInfoMap;
-	
+{	
 	protected final AbstractRegionMappingPolicy regionMappingPolicy;
 	protected final Random replicaChoosingRand;
 	
@@ -72,12 +70,12 @@ public abstract class AbstractGUIDAttrValueProcessing
 		defaultAttrValGenerator = new Random(myID.hashCode());
 	}
 	
+	
 	protected boolean checkOverlapWithSubspaceAttrs(
 			HashMap<String, AttributePartitionInfo> attributesOfSubspace, 
 				JSONArray attrSetOfAnonymizedID )
 	{
 		boolean overlapWithSubspace = false;
-		
 		
 		for(int i=0; i < attrSetOfAnonymizedID.length(); i++)
 		{
@@ -100,8 +98,9 @@ public abstract class AbstractGUIDAttrValueProcessing
 		return overlapWithSubspace;
 	}
 	
+	
 	protected void guidValueProcessingOnUpdate( 
-			JSONObject oldValueJSON, JSONObject updatedAttrValJSON ,
+			HashIndexGUIDRecord oldGuidRecord, JSONObject updatedAttrValJSON ,
 			String GUID , long requestID , boolean firstTimeInsert,
 			long updateStartTime, JSONObject primarySubspaceJSON, 
 			UpdateInfo updateReq ) throws JSONException
@@ -114,15 +113,16 @@ public abstract class AbstractGUIDAttrValueProcessing
 		}
 		else
 		{
-			processUpdateIntoSecondarySubspace( oldValueJSON, updatedAttrValJSON, 
+			processUpdateIntoSecondarySubspace( oldGuidRecord, updatedAttrValJSON, 
 					GUID , requestID ,firstTimeInsert, 
 					updateStartTime, primarySubspaceJSON, 
 					updateReq );
 		}
 	}
 	
+	
 	protected void processUpdateIntoSecondarySubspace(
-			JSONObject oldValueJSON, JSONObject updatedAttrValJSON ,
+			HashIndexGUIDRecord oldGuidRecord, JSONObject updatedAttrValJSON ,
 			String GUID , long requestID , boolean firstTimeInsert,
 			long updateStartTime, JSONObject primarySubspaceJSON, 
 			UpdateInfo updateReq ) throws JSONException
@@ -133,7 +133,7 @@ public abstract class AbstractGUIDAttrValueProcessing
 		while(attrIter.hasNext())
 		{
 			String attrName = attrIter.next();
-			String attrVal  = oldValueJSON.getString(attrName);
+			String attrVal  = oldGuidRecord.getAttrValJSON().getString(attrName);
 			
 			// lower and upper bound are same in updates.
 			AttributeValueRange attrValRange = new AttributeValueRange(attrVal, attrVal);
@@ -160,7 +160,7 @@ public abstract class AbstractGUIDAttrValueProcessing
 			}
 			else
 			{
-				value = oldValueJSON.getString(attrName);
+				value = oldGuidRecord.getAttrValJSON().getString(attrName);
 			}
 			
 			// lower and upper bound are same in updates.
@@ -218,7 +218,7 @@ public abstract class AbstractGUIDAttrValueProcessing
 		
 		
 		JSONObject unsetAttrsJSON = primarySubspaceJSON.getJSONObject
-				(RegionMappingDataStorageDB.unsetAttrsColName);
+				(DBConstants.UNSET_ATTR_COLNAME);
 		
 		// sending remove
 		nodeIter = removeNodesMap.keySet().iterator();
@@ -231,11 +231,12 @@ public abstract class AbstractGUIDAttrValueProcessing
 			
 			ValueUpdateToSubspaceRegionMessage  oldValueUpdateToSubspaceRegionMessage 
 							= new ValueUpdateToSubspaceRegionMessage( myID, -1, 
-										GUID, updatedAttrValJSON, 
-										ValueUpdateToSubspaceRegionMessage.REMOVE_ENTRY
-										, requestID, firstTimeInsert, updateStartTime,
-										oldValueJSON, unsetAttrsJSON, updatedAttrValJSON, 
-										ContextServiceConfig.privacyScheme.ordinal() );
+									GUID, updatedAttrValJSON, 
+									ValueUpdateToSubspaceRegionMessage.REMOVE_ENTRY
+									, requestID, firstTimeInsert, updateStartTime,
+									oldGuidRecord.toJSONObject(), 
+									unsetAttrsJSON, updatedAttrValJSON, 
+									ContextServiceConfig.privacyScheme.ordinal() );
 			
 			try
 			{
@@ -283,22 +284,18 @@ public abstract class AbstractGUIDAttrValueProcessing
 					}
 					else
 					{
-						assert(oldValueJSON.has(attrName));
-						attrVal = oldValueJSON.getString(attrName);
+						assert(oldGuidRecord.getAttrValJSON().has(attrName));
+						attrVal = oldGuidRecord.getAttrValJSON().getString(attrName);
 						jsonToWrite.put(attrName, attrVal);
 					}
 				}
 			}
 						
 			// anonymizedIDToGUID mapping
-			if(oldValueJSON.has(RegionMappingDataStorageDB.anonymizedIDToGUIDMappingColName))
-			{
-				JSONArray decodingArray = oldValueJSON.getJSONArray
-							(RegionMappingDataStorageDB.anonymizedIDToGUIDMappingColName);
-				
-				assert(decodingArray!= null);
-				jsonToWrite.put(RegionMappingDataStorageDB.anonymizedIDToGUIDMappingColName
-						, decodingArray);
+			if(oldGuidRecord.getAnonymizedIDToGUIDInfo()!= null)
+			{	
+				jsonToWrite.put(DBConstants.ANONYMIZEDID_TO_GUID_COLNAME
+						, oldGuidRecord.getAnonymizedIDToGUIDInfo());
 			}
 			
 			//FIXME: need to check if sending Hyperspace privacy is correct here.
@@ -308,7 +305,8 @@ public abstract class AbstractGUIDAttrValueProcessing
 								GUID, jsonToWrite,
 								ValueUpdateToSubspaceRegionMessage.ADD_ENTRY, 
 								requestID, false, updateStartTime,
-								oldValueJSON, unsetAttrsJSON, updatedAttrValJSON, 
+								oldGuidRecord.toJSONObject(), 
+								unsetAttrsJSON, updatedAttrValJSON, 
 								ContextServiceConfig.privacyScheme.ordinal());
 			
 			try
@@ -339,7 +337,8 @@ public abstract class AbstractGUIDAttrValueProcessing
 										-1, GUID, updatedAttrValJSON, 
 										ValueUpdateToSubspaceRegionMessage.UPDATE_ENTRY, 
 										requestID, firstTimeInsert, updateStartTime, 
-										oldValueJSON, unsetAttrsJSON, updatedAttrValJSON, 
+										oldGuidRecord.toJSONObject(), 
+										unsetAttrsJSON, updatedAttrValJSON, 
 										ContextServiceConfig.privacyScheme.ordinal());
 			
 			try
@@ -356,7 +355,6 @@ public abstract class AbstractGUIDAttrValueProcessing
 				e.printStackTrace();
 			}			
 		}
-		
 	}
 	
 	
@@ -405,7 +403,7 @@ public abstract class AbstractGUIDAttrValueProcessing
 		JSONObject jsonToWrite = new JSONObject();
 		
 		JSONObject unsetAttrsJSON = primarySubspaceJSON.getJSONObject
-											(RegionMappingDataStorageDB.unsetAttrsColName);
+											(DBConstants.UNSET_ATTR_COLNAME);
 		
 		attrIter = AttributeTypes.attributeMap.keySet().iterator();
 		
@@ -435,13 +433,13 @@ public abstract class AbstractGUIDAttrValueProcessing
 		
 		// add the anonymizedIDToGUID mapping if it is there
 		if(primarySubspaceJSON.has
-				(RegionMappingDataStorageDB.anonymizedIDToGUIDMappingColName))
+				(DBConstants.ANONYMIZEDID_TO_GUID_COLNAME))
 		{
 			JSONArray decodingArray 
-				= primarySubspaceJSON.getJSONArray(RegionMappingDataStorageDB.anonymizedIDToGUIDMappingColName);
+				= primarySubspaceJSON.getJSONArray(DBConstants.ANONYMIZEDID_TO_GUID_COLNAME);
 			
 			assert(decodingArray != null);
-			jsonToWrite.put(RegionMappingDataStorageDB.anonymizedIDToGUIDMappingColName, 
+			jsonToWrite.put(DBConstants.ANONYMIZEDID_TO_GUID_COLNAME, 
 					decodingArray);
 		}
 		
@@ -478,8 +476,9 @@ public abstract class AbstractGUIDAttrValueProcessing
 		
 	}
 	
-	protected JSONObject getJSONToWriteInPrimarySubspace( JSONObject oldValJSON, 
-			JSONObject updateValJSON, JSONArray anonymizedIDToGuidMapping )
+	protected JSONObject getJSONToWriteInPrimarySubspace( 
+			HashIndexGUIDRecord guidRecord, JSONObject updateValJSON, 
+			JSONArray anonymizedIDToGuidMapping )
 	{
 		JSONObject jsonToWrite = new JSONObject();
 		
@@ -502,7 +501,7 @@ public abstract class AbstractGUIDAttrValueProcessing
 					attrVal = updateValJSON.getString(attrName);
 					jsonToWrite.put(attrName, attrVal);
 				}
-				else if( !oldValJSON.has(attrName) )
+				else if( !guidRecord.getAttrValJSON().has(attrName) )
 				{
 					attrVal = attrMetaInfo.getARandomValue
 									(this.defaultAttrValGenerator);
@@ -511,7 +510,7 @@ public abstract class AbstractGUIDAttrValueProcessing
 			}
 		
 			// update unset attributes
-			JSONObject unsetAttrs = RegionMappingBasedScheme.getUnsetAttrJSON(oldValJSON);
+			JSONObject unsetAttrs = guidRecord.getUnsetAttrJSON();
 			
 			if( unsetAttrs != null )
 			{
@@ -544,19 +543,19 @@ public abstract class AbstractGUIDAttrValueProcessing
 				}
 			}
 			assert(unsetAttrs != null);
-			jsonToWrite.put(RegionMappingDataStorageDB.unsetAttrsColName, unsetAttrs);
+			jsonToWrite.put(DBConstants.UNSET_ATTR_COLNAME, unsetAttrs);
 			
 		
 			// now anonymizedIDToGUIDmapping
 			
 			boolean alreadyStored 
-					= RegionMappingBasedScheme.checkIfAnonymizedIDToGuidInfoAlreadyStored(oldValJSON);
+					= guidRecord.checkIfAnonymizedIDToGuidInfoAlreadyStored();
 			
 			if( !alreadyStored )
 			{
 				if(anonymizedIDToGuidMapping != null)
 				{
-					jsonToWrite.put(RegionMappingDataStorageDB.anonymizedIDToGUIDMappingColName, 
+					jsonToWrite.put(DBConstants.ANONYMIZEDID_TO_GUID_COLNAME, 
 						anonymizedIDToGuidMapping);
 				}
 			}
@@ -579,7 +578,7 @@ public abstract class AbstractGUIDAttrValueProcessing
 		int operType 			= valueUpdateToSubspaceRegionMessage.getOperType();
 		boolean firstTimeInsert = valueUpdateToSubspaceRegionMessage.getFirstTimeInsert();
 		
-		String tableName 		= RegionMappingDataStorageDB.ATTR_INDEX_TABLE_NAME;
+		String tableName 		= DBConstants.ATTR_INDEX_TABLE_NAME;
 		
 		try 
 		{
@@ -590,7 +589,7 @@ public abstract class AbstractGUIDAttrValueProcessing
 					//if(!ContextServiceConfig.DISABLE_SECONDARY_SUBSPACES_UPDATES)
 					{
 						this.hyperspaceDB.storeGUIDUsingAttrIndex
-							(tableName, GUID, jsonToWrite, RegionMappingDataStorageDB.INSERT_REC);
+							(tableName, GUID, jsonToWrite, DBConstants.INSERT_REC);
 					}
 					break;
 				}
@@ -609,12 +608,12 @@ public abstract class AbstractGUIDAttrValueProcessing
 						if( firstTimeInsert )
 						{
 							this.hyperspaceDB.storeGUIDUsingAttrIndex
-									(tableName, GUID, jsonToWrite, RegionMappingDataStorageDB.INSERT_REC);
+									(tableName, GUID, jsonToWrite, DBConstants.INSERT_REC);
 						}
 						else
 						{
 							this.hyperspaceDB.storeGUIDUsingAttrIndex
-									(tableName, GUID, jsonToWrite, RegionMappingDataStorageDB.UPDATE_REC);
+									(tableName, GUID, jsonToWrite, DBConstants.UPDATE_REC);
 						}
 					}
 					break;
